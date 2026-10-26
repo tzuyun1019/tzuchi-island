@@ -1,0 +1,1695 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>慈濟島</title>
+<style>
+  :root {
+    --bg: #F4EFE6;      /* 奶油底 */
+    --ink: #5B5048;     /* 文字深棕 */
+    --green: #9BAF7D;   /* 主色柔和綠 */
+    --brown: #B49B8C;   /* 點綴溫暖棕 */
+    --card: #FFFBF5;
+  }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg);
+    font-family: "PingFang TC", "Noto Sans TC", sans-serif; color: var(--ink); }
+  #app { position: fixed; top: 0; left: 0; bottom: 0; right: var(--side); }
+  :root { --side: 318px; --line: rgba(91,80,72,.15); --green-dark: #7E9466; --tint: #EEF1E6; }
+
+  /* 左上角標題 */
+  #title { position: fixed; left: 16px; top: 16px; background: var(--card); border-radius: 20px;
+    padding: 14px 20px; box-shadow: 0 4px 16px rgba(91,80,72,.12); pointer-events: none; }
+  #title h1 { margin: 0; font-size: 22px; color: var(--green); letter-spacing: 1px; }
+  #title p { margin: 4px 0 0; font-size: 13px; opacity: .7; }
+
+  /* 浮在島上的名牌（CSS2DRenderer 會把它貼到 3D 位置上） */
+  .label { background: var(--card); border-radius: 999px; padding: 5px 12px; font-size: 13px;
+    box-shadow: 0 2px 8px rgba(91,80,72,.18); cursor: pointer; white-space: nowrap;
+    transition: transform .2s; pointer-events: auto; }
+  .label:hover { transform: scale(1.08); }
+  .label b { color: var(--brown); margin-right: 6px; font-weight: 600; }
+  .label.main { background: var(--green); color: #fff; font-size: 15px; padding: 7px 16px; letter-spacing: 2px; }
+
+  /* 右側清單面板（參考 HEART 政策島的 THE POLICY INDEX） */
+  #side { position: fixed; top: 0; right: 0; bottom: 0; width: var(--side); box-sizing: border-box;
+    padding: 26px 20px 20px; overflow-y: auto; background: rgba(255,251,245,.92);
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-left: 1px solid var(--line); }
+  .eyebrow { font: 700 10px/1.4 ui-monospace, "SF Mono", monospace; letter-spacing: .14em; color: #A0826F; }
+  #side h2 { margin: 8px 0 6px; font-size: 22px; font-weight: 800; letter-spacing: 1px; }
+  #side .sub { margin: 0; font-size: 12px; line-height: 1.7; opacity: .72; }
+  #search { width: 100%; box-sizing: border-box; margin: 16px 0 10px; padding: 10px 12px; font: inherit; font-size: 13px;
+    color: var(--ink); background: #FFFDFB; border: 1px solid var(--line); border-radius: 10px; outline: none; }
+  #search:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(155,175,125,.18); }
+  #tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  #tabs button { padding: 8px 4px; font: inherit; font-size: 12px; color: var(--ink); background: var(--card);
+    border: 1px solid var(--line); border-radius: 10px; cursor: pointer; transition: background .2s, color .2s; }
+  #tabs button.on { background: var(--green); border-color: var(--green); color: #fff; }
+  #list { list-style: none; margin: 12px 0 0; padding: 0; }
+  #list li { border-bottom: 1px solid var(--line); }
+  #list li[hidden] { display: none; }
+  .row { display: flex; align-items: baseline; gap: 12px; width: 100%; padding: 13px 10px; border: 0; background: none;
+    font: inherit; color: inherit; text-align: left; cursor: pointer; border-radius: 10px; transition: background .2s; }
+  .row:hover { background: rgba(155,175,125,.1); }
+  .row .no { width: 32px; flex: none; font: italic 22px/1 Georgia, serif; color: var(--brown); }
+  .row .nm { flex: 1; font-size: 15px; font-weight: 600; }
+  .row .tg { font-size: 11px; padding: 2px 8px; border: 1px solid var(--line); border-radius: 999px; opacity: .8; }
+  #list li.on .row { background: var(--tint); box-shadow: inset 3px 0 0 var(--green); border-radius: 10px 10px 0 0; }
+  #list li.on .no { color: var(--green-dark); }
+  .more { display: none; padding: 0 12px 12px 54px; background: var(--tint); border-radius: 0 0 10px 10px;
+    box-shadow: inset 3px 0 0 var(--green); font-size: 13px; line-height: 1.7; }
+  #list li.on .more { display: block; }
+  #empty { margin: 24px 0; text-align: center; font-size: 13px; opacity: .6; }
+
+  /* 點島後從左邊浮出的說明卡 */
+  #card { position: fixed; left: 16px; top: 160px; width: min(340px, calc(100vw - var(--side) - 48px));
+    max-height: calc(100vh - 180px); overflow-y: auto; box-sizing: border-box; padding: 22px 22px 20px;
+    background: var(--card); border-radius: 20px; box-shadow: 0 8px 28px rgba(91,80,72,.18);
+    transform: translateX(calc(-100% - 32px)); opacity: 0; transition: transform .35s ease, opacity .35s; z-index: 5; }
+  #card.open { transform: none; opacity: 1; }
+  #cClose { position: absolute; top: 12px; right: 12px; width: 32px; height: 32px; border: 0; border-radius: 50%;
+    background: none; font-size: 16px; color: var(--ink); cursor: pointer; }
+  #cClose:hover { background: #F1EADF; }
+  #card .head { display: flex; align-items: center; gap: 12px; margin: 10px 0 12px; }
+  #cTile { width: 48px; height: 48px; flex: none; display: grid; place-items: center; border-radius: 14px;
+    font: italic 20px Georgia, serif; color: #fff; }
+  #card h3 { margin: 0; font-size: 22px; }
+  #card p { margin: 0; font-size: 14px; line-height: 1.75; }
+  #cQuote { margin: 14px 0 0; padding: 4px 0 4px 14px; border-left: 3px solid var(--brown); font-size: 14px; line-height: 1.7; }
+  #cQuote[hidden] { display: none; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+  .chips span { padding: 4px 10px; font-size: 12px; border: 1px solid var(--line); border-radius: 999px; }
+  .chips span:first-child::before { content: ""; display: inline-block; width: 7px; height: 7px; margin-right: 6px;
+    border-radius: 50%; background: var(--green); vertical-align: 1px; }
+  #cHome { margin-top: 18px; padding: 8px 18px; border: 0; border-radius: 999px; background: var(--green);
+    color: #fff; font: inherit; font-size: 14px; cursor: pointer; }
+  body.card-open #legend { display: none; }
+  #card h4 { margin: 20px 0 8px; font-size: 12px; font-weight: 700; letter-spacing: .08em; opacity: .65; }
+  #cWorks { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+  #cWorks details { border: 1px solid var(--line); border-radius: 12px; background: #FFFDFB; transition: background .2s; }
+  #cWorks details[open] { background: var(--tint); border-color: rgba(155,175,125,.45); }
+  #cWorks summary { display: flex; align-items: center; gap: 8px; padding: 10px 12px; cursor: pointer; list-style: none; font-size: 14px; }
+  #cWorks summary::-webkit-details-marker { display: none; }
+  #cWorks summary i { width: 7px; height: 7px; flex: none; border-radius: 50%; background: var(--brown); }
+  #cWorks summary b { flex: 1; font-weight: 600; }
+  #cWorks summary em { font-style: normal; font-size: 11px; opacity: .6; white-space: nowrap; }
+  #cWorks summary::after { content: "›"; opacity: .5; transition: transform .2s; }
+  #cWorks details[open] summary::after { transform: rotate(90deg); }
+  #cWorks details p { margin: 0; padding: 0 12px 12px 27px; font-size: 13px; line-height: 1.7; }
+  #cSrc { margin: 0; padding-left: 18px; font-size: 12px; line-height: 1.8; }
+  #cSrc a { color: var(--green-dark); }
+  .more ol { margin: 4px 0 0; padding: 0; list-style: none; counter-reset: w; }
+  #list .more li { counter-increment: w; padding: 3px 0; border: 0; cursor: pointer; }
+  .more li::before { content: counter(w); display: inline-grid; place-items: center; width: 18px; height: 18px; margin-right: 8px;
+    border: 1px solid var(--green-dark); border-radius: 50%; font-size: 11px; color: var(--green-dark); }
+  .more li:hover { color: var(--green-dark); }
+
+  /* 手機：清單變成下方的抽屜，說明卡改從上方出現 */
+  @media (max-width: 700px) {
+    :root { --side: 0px; }
+    #app { bottom: 44vh; }
+    #side { top: auto; left: 0; width: auto; height: 44vh; padding: 18px 16px; border-left: 0;
+      border-top: 1px solid var(--line); border-radius: 20px 20px 0 0; }
+    #card { left: 16px; right: 16px; top: 16px; width: auto; max-height: calc(56vh - 32px); transform: translateY(calc(-100% - 32px)); }
+  }
+
+  /* 日出／白天／黃昏／夜晚 切換鈕 */
+  #time { position: fixed; left: 16px; top: 104px; display: flex; gap: 4px; background: var(--card);
+    border-radius: 999px; padding: 5px; box-shadow: 0 4px 16px rgba(91,80,72,.12); }
+  #time button { border: 0; background: none; border-radius: 999px; padding: 7px 14px; font-size: 13px;
+    color: var(--ink); cursor: pointer; font-family: inherit; transition: background .25s, color .25s; }
+  #time button:hover { background: #F1EADF; }
+  #time button.on { background: var(--green); color: #fff; }
+
+  /* 制服圖例 */
+  #legend { position: fixed; left: 16px; top: 160px; background: var(--card); border-radius: 16px;
+    padding: 10px 14px; box-shadow: 0 4px 16px rgba(91,80,72,.12); font-size: 12px; pointer-events: none; }
+  #legend div { display: flex; align-items: center; gap: 8px; padding: 3px 0; }
+  #legend i { width: 12px; height: 16px; border-radius: 4px; flex: none; box-shadow: inset 0 0 0 1px rgba(91,80,72,.15); }
+  #legend b { font-weight: 600; }
+  #legend span { opacity: .6; }
+  @media (max-width: 600px) { #legend { display: none; } }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="title"><h1>慈濟島</h1><p>拖曳旋轉・滾輪縮放・點島或右側清單看說明</p></div>
+<div id="time">
+  <button data-time="sunrise">日出</button>
+  <button data-time="day" class="on">白天</button>
+  <button data-time="dusk">黃昏</button>
+  <button data-time="night">夜晚</button>
+</div>
+<div id="legend"></div>
+<aside id="side">
+  <div class="eyebrow">JING SI ISLANDS · INDEX</div>
+  <h2>四大志業・八大法印</h2>
+  <p class="sub">9 座島 ／ 中央是靜思精舍<br>選一座島，走進它的風景。</p>
+  <input id="search" type="search" placeholder="搜尋島名、關鍵字…" aria-label="搜尋島嶼">
+  <div id="tabs">
+    <button data-f="all" class="on">全部</button>
+    <button data-f="four">四大志業</button>
+    <button data-f="eight">八大法印</button>
+  </div>
+  <ol id="list"></ol>
+  <p id="empty" hidden>找不到符合的島</p>
+</aside>
+<div id="card" role="dialog" aria-labelledby="cName">
+  <button id="cClose" aria-label="關閉說明卡">✕</button>
+  <div class="eyebrow" id="cNum"></div>
+  <div class="head"><div id="cTile"></div><h3 id="cName"></h3></div>
+  <p id="cDesc"></p>
+  <blockquote id="cQuote"></blockquote>
+  <div class="chips" id="cChips"></div>
+  <h4>慈濟人在這裡做什麼</h4>
+  <ul id="cWorks"></ul>
+  <h4>參考資料</h4>
+  <ol id="cSrc"></ol>
+  <button id="cHome">回到全景</button>
+</div>
+
+<!-- 告訴瀏覽器 "three" 要去哪裡下載 -->
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
+/* ────────────────────────────────────────────
+   步驟 ① 資料：每座島一筆。改這裡就能換內容
+   9 座一樣大的六角島緊密排在一起，中央是靜思精舍：
+   四大志業（慈善、醫療、教育、人文）在精舍的四個斜角，
+   國際賑災、骨髓捐贈、環保、社區志工在北、東、南、西
+   ax 是「六角格座標」：[0, 0] 是正中央，[1, 0] 往東、[0, 1] 往東南、[-1, 1] 往西南…
+   ──────────────────────────────────────────── */
+const ISLANDS = [
+  { name: '靜思精舍', tag: '心靈的故鄉', type: 'abode', ax: [0, 0], color: '#A9B98F', quote: '心靈的故鄉',
+    desc: '1969 年落成，大殿採唐式建築：灰色水泥牆、淺灰白翹角屋頂，正面門廊有四根白柱。屋頂原本鋪日本黑瓦，因颱風地震常破損，證嚴法師親自和工人一起改用水泥砌。慈濟人稱這裡是「心靈的故鄉」。' },
+  { name: '慈善', tag: '四大志業', type: 'charity', ax: [0, -1], color: '#9BAF7D', quote: '教富濟貧、濟貧教富',
+    desc: '一切從「竹筒歲月」開始：三十位家庭主婦每天存五毛錢幫助人。1969 年辦了第一次冬令發放，送米糧、棉被，還和照顧戶一起圍爐。「教富濟貧、濟貧教富」，慈善是人類的希望。' },
+  { name: '醫療', tag: '四大志業', type: 'medical', ax: [1, -1], color: '#A3B585', quote: '以人為本，以病為師',
+    desc: '1986 年花蓮慈濟醫院啟業，現在台灣有 7 所慈濟醫院。島上的醫院參考花蓮、大林慈院：灰色石材、左右對稱，門口有弧形花崗石牆。「以人為本，以病為師」，醫療是生命的希望。' },
+  { name: '教育', tag: '四大志業', type: 'school', ax: [0, 1], color: '#A8B98C', quote: '教之以禮，育之以德',
+    desc: '慈濟大學在花蓮，前身是慈濟醫學院和慈濟護專。島上的學校參考慈大與慈中：主樓是弧形人字屋頂，旁邊是白色現代樓和灰瓦迴廊。「教之以禮，育之以德」，教育是社會的希望。' },
+  { name: '人文', tag: '四大志業', type: 'culture', ax: [-1, 1], color: '#9AAD80', quote: '人文是心靈的希望',
+    desc: '大愛電視 1998 年開播，總部在台北北投關渡的慈濟人文志業中心，不接受商業廣告。島上是那棟高塔、階梯狀的弧形翼樓和圓形低樓。人文是心靈的希望。' },
+  { name: '國際賑災', tag: '八大法印', type: 'relief', ax: [1, -2], color: '#B5C19A', quote: '直接、重點、尊重、務實、感恩、及時',
+    desc: '災難發生時，志工把福慧床、福慧隔屏、香積飯和環保毛毯送到災區。原則是「直接、重點、尊重、務實、感恩、及時」。' },
+  { name: '骨髓捐贈', tag: '八大法印', type: 'marrow', ax: [1, 0], color: '#B9C29A',
+    desc: '慈濟骨髓幹細胞中心 1993 年成立，常在社區辦驗血建檔活動。2026 年的報導指出，已有超過 48 萬人建檔、移植個案超過 6,700 人，遍及 31 個國家。' },
+  { name: '環保', tag: '八大法印', type: 'recycle', ax: [-1, 2], color: '#A3B585', quote: '瓶瓶罐罐紙電衣三五七',
+    desc: '環保志工把寶特瓶依顏色分類、拆瓶蓋、撕標籤，壓成瓶磚，再製成環保毛毯送往災區。分類口訣：「瓶瓶罐罐紙電衣三五七」。' },
+  { name: '社區志工', tag: '八大法印', type: 'community', ax: [-1, 0], color: '#B5C19A',
+    desc: '志工在自己的社區關懷鄰里。島上是各地靜思堂的樣子：白牆、灰色弧形人字屋頂，中間高、兩側翼樓低，是社區慈濟人聚會和辦活動的地方。' },
+];
+/* ────────────────────────────────────────────
+   步驟 ①-2 慈濟人在每座島上做了什麼（像政策島的「政策細項」）
+   t：標題　m：年份或重點　d：說明　src：這座島的參考資料
+   內容都來自查得到的報導或資料，網址列在 src
+   ──────────────────────────────────────────── */
+const WORKS = {
+  abode: {
+    items: [
+      { t: '不受供養、自力更生', m: '精神', d: '精舍師父不接受供養，效法唐朝百丈禪師「一日不作，一日不食」，靠自己的雙手過生活。' },
+      { t: '做手工維持生活', m: '早期 21 種', d: '早期精舍做了 21 種手工，像蠟燭、五穀粉、嬰兒鞋；後來手工產品增加到三十幾種。' },
+      { t: '耕種起家', m: '1966', d: '證嚴法師的母親買下土地讓法師和弟子耕種，就是今天靜思精舍所在的地方。' },
+      { t: '一磚一瓦自己蓋', m: '1969 落成', d: '1968 年用土地向銀行抵押貸款蓋精舍，1969 年落成；之後靠節儉存下的錢，前前後後增建了十幾期。' },
+      { t: '照顧回家的慈濟人', m: '心靈的故鄉', d: '慈濟人回到精舍的生活開銷，也由精舍師父承擔，靜思書軒的營收就用在這些地方。' },
+    ],
+    src: [
+      ['靜思精舍（維基百科）', 'https://zh.wikipedia.org/zh-tw/靜思精舍'],
+      ['花蓮在地學習資料：靜思精舍', 'https://student.hlc.edu.tw/hualien/action/file/358/20161004141117779.pdf'],
+      ['Practice being self-sufficient, not accepting offerings', 'https://tzuchidharma.org/blog/practice_being-self-sufficient-not-accepting-offerings'],
+    ],
+  },
+  charity: {
+    items: [
+      { t: '竹筒歲月', m: '1966', d: '三十位家庭主婦每天把五毛錢投進竹筒，匯聚成助人的力量，這是慈濟的起點。' },
+      { t: '冬令發放', m: '1969 起', d: '1969 年在普明寺辦第一次冬令發放，送米糧、生活費、棉被和衣服，還和照顧戶一起圍爐；不能來的，志工就登門送到家。' },
+      { t: '訪視評估', m: '先到家裡看', d: '志工先拜訪案家，了解生活狀況和復原能力，再決定是否列為長期照顧戶。' },
+      { t: '急難與長期補助', m: '依需要協助', d: '包括急難生活補助、醫療與長照補助、長期經濟扶助、助學補助和居住環境改善。' },
+      { t: '修繕房屋', m: '居住安全', d: '長期陪伴的案家，若房子需要整修，會請慈濟營建單位評估後協助修繕。' },
+      { t: '獨居長者家訪', m: '居家安全', d: '志工主動拜訪獨居長者和弱勢家庭，檢查扶手、坡道等居家安全設施。' },
+    ],
+    src: [
+      ['竹筒歲月與冬令發放（華語文教育全球資訊網）', 'https://www.huayuworld.org/Overseas/PrintReport?PID=5527'],
+      ['慈濟基金會紓困服務說明（衛福部）', 'https://www.mohw.gov.tw/dl-98970-2fb6f46c-5900-4bea-a32f-02ff31ee2456.html'],
+      ['慈濟訪視案例資料（一）', 'https://tcdata.tzuchi-org.tw/files/public/public.test/2024/04/20231203-023017382-7066.pdf'],
+      ['慈濟訪視案例資料（二）', 'https://tcdata.tzuchi-org.tw/files/public/public.test/2024/03/20240318-210928035-4209.pdf'],
+      ['慈濟訪視案例資料（三）', 'https://tcdata.tzuchi-org.tw/files/public/public.test/2024/03/20240318-204743863-2167.pdf'],
+    ],
+  },
+  medical: {
+    items: [
+      { t: '花蓮慈濟醫院', m: '1986', d: '1986 年在花蓮啟業，2002 年成為東台灣第一間醫學中心；現在台灣有 7 所慈濟醫院。' },
+      { t: '人醫會義診', m: '五十多國', d: '國際慈濟人醫會的義診足跡走過全球五十多個國家；資源不足的地方，甚至借學校教室當臨時開刀房。' },
+      { t: '偏鄉義診', m: '例：1999', d: '例如 1999 年南區人醫會到高雄桃源鄉寶山村義診，提供內科、牙科和成人健檢，服務 125 人次。' },
+      { t: '預防與衛教', m: '上醫治未病', d: '除了治病，也在社區和義診現場做衛教、推動素食，希望在生病之前就照顧好健康。' },
+    ],
+    src: [
+      ['花蓮慈濟醫學中心（維基百科）', 'https://zh.wikipedia.org/zh-tw/花蓮慈濟醫學中心'],
+      ['人醫心傳：人醫會義診足跡', 'https://med.tzuchi.com.tw/tcmed/images/NEW/64/n8.pdf'],
+      ['人醫心傳：偏鄉義診紀錄', 'https://tcmc.tzuchi.com.tw/images/pdf/270/n6.pdf'],
+    ],
+  },
+  school: {
+    items: [
+      { t: '慈濟大學', m: '花蓮', d: '前身是慈濟醫學院和慈濟護專，是東台灣第一座醫學高等學府。' },
+      { t: '無語良師', m: '2002 模擬手術', d: '醫學系用捐贈的大體做解剖教學，大體老師有名有姓，慈濟稱為「無語良師」；2002 年起試辦大體模擬手術，每節課開始和結束都向老師致意。' },
+      { t: '靜思語教學', m: '中小學課程', d: '靜思語教學是慈濟中小學一貫課程的重點；全省研習營曾有 406 位老師參加，包括來自馬來西亞、澳洲的老師。' },
+      { t: '慈濟中小學', m: '2000 招生', d: '2000 年 7 月開始招生，讓慈濟從小學到大學的「完全教育」更完整。' },
+      { t: '新芽獎學金', m: '2007 設立', d: '鼓勵清寒學子；2024 年全台舉辦 31 場頒獎典禮，約 9 千位學子獲獎。' },
+    ],
+    src: [
+      ['慈濟大學（維基百科）', 'https://zh.wikipedia.org/zh-tw/慈濟大學'],
+      ['大體模擬手術教學報導（聯合新聞網）', 'https://health.udn.com/health/story/6001/4341110'],
+      ['靜思語教學資料', 'https://tcdata.tzuchi-org.tw/files/public/public.test/2024/04/20231203-023859246-3309.pdf'],
+      ['花蓮慈濟頒新芽獎學金（yam 新聞）', 'https://n.yam.com/Article/20221031135945'],
+      ['新芽獎學金資料', 'https://tcdata.tzuchi-org.tw/files/public/public.test/2024/03/20231224-175510148-5319.pdf'],
+    ],
+  },
+  culture: {
+    items: [
+      { t: '大愛電視', m: '1998 開台', d: '不接受商業廣告，三分之一資金來自環保志工做資源回收的所得，其他來自捐款。' },
+      { t: '走向海外', m: '1999', d: '1999 年規劃海外版，和東南亞、美國的有線電視系統協商落地。' },
+      { t: '月刊與雜誌', m: '慈濟月刊・經典', d: '慈濟傳播人文志業基金會發行《慈濟月刊》和《經典雜誌》，記錄志工的故事。' },
+      { t: '出版', m: '1997 起', d: '靜思文化 1997 年起步；2026 年和天下文化合出《行願一甲子》，慶祝慈濟六十週年。' },
+      { t: '大愛網路電台', m: '聲音', d: '除了電視和刊物，也經營大愛網路電台。' },
+    ],
+    src: [
+      ['大愛電視（維基百科）', 'https://zh.wikipedia.org/zh-tw/大愛電視'],
+      ['慈濟「文化的十年」回顧資料', 'https://tcdata.tzuchi-org.tw/files/public/public.test/2024/04/20231203-024800680-3103.pdf'],
+      ['慈濟傳播人文志業基金會介紹', 'https://uptogo.com.tw/?p=1657710'],
+      ['《行願一甲子》書展報導（LINE TODAY）', 'https://today.line.me/tw/v3/article/WB8rzeJ'],
+    ],
+  },
+  relief: {
+    items: [
+      { t: '孟加拉水患', m: '1991 起點', d: '慈濟國際賑災從 1991 年孟加拉水患開始；同年中國華東水災，證嚴法師第一次派志工出國勘災。' },
+      { t: '尼泊爾永久屋', m: '1993', d: '尼泊爾水患後，慈濟為受災民眾興建 1,800 戶永久屋，是很早期的海外重建。' },
+      { t: '遍及五大洲', m: '2000 年', d: '到 2000 年 4 月，已援助全球四十多個國家，橫跨亞、歐、美、非、大洋洲。' },
+      { t: '福慧床與隔屏', m: '收容安置', d: '可摺疊的福慧床讓災民不用睡地上；2019 年研發的福慧隔屏，每片用 280 支回收寶特瓶做成，保護隱私。' },
+      { t: '土耳其敘利亞地震', m: '2023', d: '準備 12 萬條毛毯，其中 3 萬多條是用台灣回收寶特瓶重製的。' },
+      { t: '烏克蘭難民', m: '2022', d: '在波蘭發放物資，並和 11 個國際組織合作援助流離失所的難民。' },
+    ],
+    src: [
+      ['慈濟國際賑災緣起資料', 'https://tcdata.tzuchi-org.tw/files/public/public.test/2024/04/20231202-223737351-8898.pdf'],
+      ['慈濟安置災民「七寶」設施（yam 新聞）', 'https://n.yam.com/Article/20240420725482'],
+      ['臺北市國家防災日 慈濟展示收容設備（yam 新聞）', 'https://n.yam.com/Article/20240922885865'],
+      ['土敘地震毛毯援助（鏡週刊）', 'https://www.mirrormedia.mg/story/20230220soc008'],
+      ['慈濟援助烏克蘭難民（鏡週刊）', 'https://www.mirrormedia.mg/story/amp/20220615soc003'],
+    ],
+  },
+  marrow: {
+    items: [
+      { t: '成立骨髓幹細胞中心', m: '1993', d: '秉持「救人一命，無損己身」，證嚴法師在 1993 年成立慈濟骨髓幹細胞中心。' },
+      { t: '驗血建檔', m: '年年舉辦', d: '在社區和公共場所辦驗血建檔活動，邀請年滿 18 歲、未滿 46 歲的民眾參加；超過 55 歲就不能捐，所以需要年年招募新血。' },
+      { t: '關懷小組陪伴', m: '一路相伴', d: '志工組成關懷小組，聯繫多年失聯的捐贈者、向家屬說明，陪伴捐贈者完成整個過程。' },
+      { t: '跨國救命', m: '31 國', d: '捐贈案例已遍及全球 31 個國家；2023 年一位越南受贈者來台，見到救命的台灣捐贈者。' },
+      { t: '累積的成果', m: '2026 報導', d: '已超過 48 萬人建檔、超過 7 萬人尋求配對，移植個案超過 6,700 人。' },
+      { t: '志工專業培訓', m: '2026', d: '北區約 600 位志工參加骨髓關懷國際認證訓練，首次導入 AI 和線上測驗。' },
+    ],
+    src: [
+      ['科技賦能志工精進認證 大愛接力守護生命髓緣（yam 新聞）', 'https://n.yam.com/Article/20260405325296'],
+      ['髓緣三十生生不息 慈濟骨髓幹細胞中心 30 周年（yam 新聞）', 'https://n.yam.com/Article/20231007199817'],
+      ['骨髓驗血建檔活動（財訊）', 'https://www.moneyweekly.com.tw/_Article?AID=35353'],
+    ],
+  },
+  recycle: {
+    items: [
+      { t: '用鼓掌的雙手做環保', m: '1990', d: '1990 年證嚴法師呼籲「用鼓掌的雙手做環保」，從此慈濟人投入資源回收。' },
+      { t: '寶特瓶分類', m: '標準步驟', d: '挑出 1 號寶特瓶，依顏色分類、拆瓶蓋和瓶圈、撕標籤，再壓成瓶磚。' },
+      { t: '寶特瓶變毛毯', m: '環保毛毯', d: '回收寶特瓶經過切片、造粒、抽絲、紡紗、織布，做成環保毛毯，送到海內外救災。' },
+      { t: '惜福整理', m: '物命延續', d: '志工也把堪用的物品和衣物整理好，和需要的人結緣。' },
+      { t: '支持大愛電視', m: '回收所得', d: '大愛電視三分之一的資金，來自環保志工做資源回收的所得。' },
+      { t: '分類口訣', m: '三五七', d: '「瓶瓶罐罐紙電衣三五七」，幫大家記住回收分類的項目。' },
+    ],
+    src: [
+      ['慈濟社會投資報酬：環保（慈濟 CSR）', 'https://tzuchi-csr.org.tw/SocialReturnonInvestment.php?lan=&'],
+      ['寶特瓶回收 SOP 與環保毛毯（T 客邦）', 'https://www.techbang.com/posts/7671'],
+      ['內湖環保站與分類口訣（關鍵評論網）', 'https://www.thenewslens.com/article/107192'],
+      ['八德環保惜福站（NOWnews）', 'https://www.nownews.com/news/2737319'],
+      ['大愛電視（維基百科）', 'https://zh.wikipedia.org/zh-tw/大愛電視'],
+    ],
+  },
+  community: {
+    items: [
+      { t: '培訓防災士', m: '3,968 人', d: '配合政府推動防災士培訓，到 2023 年底已有 3,968 人完成培訓。' },
+      { t: '颱風前後關懷', m: '守護家園', d: '颱風警報發布後，在安全第一的前提下，用電話和走訪關心社區裡的弱勢家庭。' },
+      { t: '居家安全檢視', m: '防災融入訪視', d: '訪視時順便協助案家檢查家裡的危險因子，把防災觀念帶進每個家庭。' },
+      { t: '關懷士培訓', m: '陪伴技巧', d: '第一線訪視志工學習陪伴助人的技巧，以及災難後的心理關懷。' },
+      { t: '長照輔具', m: '居家照顧', d: '提供居家照顧床、輪椅等輔具，協助需要長期照顧的家庭。' },
+      { t: '社區環保宣導', m: '從家門口做起', d: '在社區裡宣導垃圾分類和資源回收。' },
+    ],
+    src: [
+      ['慈濟防災士與關懷士培訓資料', 'https://tcdata.tzuchi-org.tw/files/public/public.test/2024/04/20231203-044157973-8057.pdf'],
+      ['慈濟全台連線防災會議（TVBS）', 'https://news.tvbs.com.tw/life/3253949'],
+      ['慈濟長照個案陪伴（志為護理）', 'https://nursing.tzuchi.com.tw/images/pdf/24-5/n60.pdf'],
+    ],
+  },
+};
+
+const R = 3;                                            // 每座島的半徑（9 座一樣大）
+const SPACING = R * 1.13;                               // 島和島只隔一條窄窄的水道
+const TOP = 0.3;                                        // 島面高度
+const WATER_Y = -0.35;                                  // 水面高度
+const PATH_R = R * 0.89;                                // 外圈步道（小人走的路）的位置
+const SQ3 = Math.sqrt(3);
+const axialToWorld = ([q, r]) => new THREE.Vector3(SQ3 * SPACING * (q + r / 2), 0, 1.5 * SPACING * r);
+const hexPoint = (r, k) => {                            // 六角形第 k 個頂點（尖端朝前後）
+  const a = Math.PI / 2 + (k * Math.PI) / 3;
+  return [Math.cos(a) * r, Math.sin(a) * r];
+};
+
+/* ────────────────────────────────────────────
+   步驟 ② 舞台：場景、相機、兩個渲染器
+   ──────────────────────────────────────────── */
+const app = document.getElementById('app');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color('#F4EFE6');
+scene.fog = new THREE.Fog('#F4EFE6', 70, 150);          // 遠方淡出，更有空氣感
+
+const camera = new THREE.PerspectiveCamera(40, app.clientWidth / app.clientHeight, 0.1, 200);
+const HOME = new THREE.Vector3(20, 25, 30);            // 全景的鏡頭位置
+camera.position.copy(HOME);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(app.clientWidth, app.clientHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+app.appendChild(renderer.domElement);
+
+// 第二個渲染器專門畫 HTML 名牌，疊在 3D 畫面上面
+const labelRenderer = new CSS2DRenderer();
+labelRenderer.setSize(app.clientWidth, app.clientHeight);
+labelRenderer.domElement.style.cssText = 'position:absolute;inset:0;pointer-events:none';
+app.appendChild(labelRenderer.domElement);
+
+// 滑鼠拖曳轉鏡頭
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.maxPolarAngle = Math.PI / 2.3;                 // 不讓鏡頭鑽到海底
+controls.minDistance = 5;
+controls.maxDistance = 85;
+
+/* ────────────────────────────────────────────
+   步驟 ③ 光線：天空光 + 太陽（太陽負責影子）
+   ──────────────────────────────────────────── */
+const hemi = new THREE.HemisphereLight('#FFF6E8', '#B7C7B0', 1.6);
+scene.add(hemi);
+const sun = new THREE.DirectionalLight('#FFE9D2', 2.2);
+sun.position.set(15, 25, 10);
+sun.castShadow = true;
+sun.shadow.mapSize.set(4096, 4096);                   // 範圍變大，影子解析度跟著調高
+Object.assign(sun.shadow.camera, { left: -24, right: 24, top: 24, bottom: -24, far: 120 });
+scene.add(sun);
+
+/* ────────────────────────────────────────────
+   步驟 ④ 小工具：做一個「會投影子、霧面」的物件
+   ──────────────────────────────────────────── */
+const mat = (color) => new THREE.MeshStandardMaterial({ color, roughness: 0.9, flatShading: true });
+function mesh(geometry, color) {
+  const m = new THREE.Mesh(geometry, mat(color));
+  m.castShadow = m.receiveShadow = true;
+  return m;
+}
+
+// 固定亂數：每次重新整理，樹的位置都一樣
+let seed = 7;
+const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+
+/* ────────────────────────────────────────────
+   步驟 ⑤ 積木：樹、房子、石燈籠、靜思堂、精舍，和各島的建築
+   全部用最基本的幾何（圓錐、方塊、圓柱）拼出來
+   ──────────────────────────────────────────── */
+function tree(scale = 1) {
+  const g = new THREE.Group();
+  const trunk = mesh(new THREE.CylinderGeometry(0.08, 0.1, 0.4, 6), '#8C7564');
+  trunk.position.y = 0.2;
+  const leaves = mesh(new THREE.ConeGeometry(0.35, 0.8, 7), rand() > 0.5 ? '#7E9A6B' : '#94AD7A');
+  leaves.position.y = 0.75;
+  g.add(trunk, leaves);
+  g.scale.setScalar(scale);
+  return g;
+}
+
+function house(wall = '#F3E6D8', roof = '#C98F7E') {
+  const g = new THREE.Group();
+  const body = mesh(new THREE.BoxGeometry(0.7, 0.55, 0.7), wall);
+  body.position.y = 0.275;
+  const top = mesh(new THREE.ConeGeometry(0.58, 0.45, 4), roof);
+  top.position.y = 0.775;
+  top.rotation.y = Math.PI / 4;                          // 四角錐轉 45° 才會對齊方塊
+  g.add(body, top);
+  return g;
+}
+
+const lamps = [], lampLights = [];                     // 會發光的燈，晚上要變亮
+function stoneLantern(withLight = false) {             // 石燈籠
+  const g = new THREE.Group();
+  const base = mesh(new THREE.CylinderGeometry(0.1, 0.13, 0.35, 6), '#CFC8BC');
+  base.position.y = 0.175;
+  const lamp = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.14, 0.16),
+    new THREE.MeshStandardMaterial({ color: '#FFE7A8', emissive: '#FFD27A', emissiveIntensity: 0.5 }));
+  lamp.position.y = 0.42;
+  const cap = mesh(new THREE.ConeGeometry(0.17, 0.14, 4), '#BDB5A8');
+  cap.position.y = 0.56; cap.rotation.y = Math.PI / 4;
+  g.add(base, lamp, cap);
+  lamps.push(lamp);
+  if (withLight) {                                      // 燈太多會卡，只有部分真的照亮周圍
+    const glow = new THREE.PointLight('#FFD27A', 0, 4);
+    glow.position.y = 0.45;
+    g.add(glow);
+    lampLights.push(glow);
+  }
+  return g;
+}
+
+function flower() {
+  const colors = ['#F4C7C3', '#F8E3A3', '#C9DDF0', '#D9C8EC'];  // 馬卡龍點綴
+  const f = mesh(new THREE.SphereGeometry(0.1, 6, 4), colors[Math.floor(rand() * colors.length)]);
+  f.position.y = 0.1;
+  return f;
+}
+
+// 人字形屋頂（三角柱）：w 是長邊（左右），d 是深度（前後），h 是高度
+function gableRoof(w, d, h, color) {
+  const s = new THREE.Shape();
+  s.moveTo(-d / 2, 0); s.lineTo(d / 2, 0); s.lineTo(0, h); s.closePath();
+  const geo = new THREE.ExtrudeGeometry(s, { depth: w, bevelEnabled: false });
+  geo.translate(0, 0, -w / 2);
+  geo.rotateY(Math.PI / 2);
+  return mesh(geo, color);
+}
+
+function box(w, h, d, color, x = 0, y = 0, z = 0) {    // 放在地面上的方塊（y 是離地高度）
+  const b = mesh(new THREE.BoxGeometry(w, h, d), color);
+  b.position.set(x, y + h / 2, z);
+  return b;
+}
+
+// 有弧度的人字形（靜思堂那種往內凹、屋簷往外翹的線條），正面朝 +z
+function swoopShape(w, h) {
+  const s = new THREE.Shape();
+  const t = h * 0.14;                                   // 屋簷翹起的高度
+  s.moveTo(-w / 2 - 0.12, t);
+  s.quadraticCurveTo(-w * 0.12, h * 0.25, 0, h);        // 往內凹的弧線
+  s.quadraticCurveTo(w * 0.12, h * 0.25, w / 2 + 0.12, t);
+  s.lineTo(w / 2 - 0.05, 0);
+  s.lineTo(-w / 2 + 0.05, 0);
+  s.closePath();
+  return s;
+}
+function swoopRoof(w, d, h, color, face = '#F2EFEA') {
+  const g = new THREE.Group();
+  const geo = new THREE.ExtrudeGeometry(swoopShape(w, h), { depth: d, bevelEnabled: false, curveSegments: 10 });
+  geo.translate(0, 0, -d / 2);
+  g.add(mesh(geo, color));
+  const wall = mesh(new THREE.ShapeGeometry(swoopShape(w * 0.78, h * 0.78)), face);  // 正面白色山牆
+  wall.position.set(0, 0.02, d / 2 + 0.01);
+  g.add(wall);
+  return g;
+}
+
+// 四角微微上翹的屋頂（精舍主殿那種）
+function hipRoof(w, d, h, color) {
+  const g = new THREE.Group();
+  const geo = new THREE.CylinderGeometry(0.3, 1, 1, 4, 1);
+  geo.rotateY(Math.PI / 4);
+  geo.scale(w / Math.SQRT2, h, d / Math.SQRT2);
+  geo.translate(0, h / 2, 0);
+  g.add(mesh(geo, color));
+  [[1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(([sx, sz]) => {   // 四個翹角
+    const tip = mesh(new THREE.ConeGeometry(0.06, 0.3, 4), color);
+    tip.position.set(sx * w / 2, 0.06, sz * d / 2);
+    tip.rotation.set(sz * 1.0, 0, -sx * 1.0);
+    g.add(tip);
+  });
+  return g;
+}
+
+function pine(s = 1) {                                  // 修剪過的松樹（精舍庭院那種）
+  const g = new THREE.Group();
+  const trunk = mesh(new THREE.CylinderGeometry(0.05, 0.08, 0.9, 6), '#8C7564');
+  trunk.position.y = 0.45; trunk.rotation.z = 0.12;
+  g.add(trunk);
+  [[0.18, 0.55, 0.3], [-0.16, 0.8, 0.26], [0.05, 1.05, 0.22]].forEach(([x, y, r]) => {
+    const p = mesh(new THREE.SphereGeometry(r, 8, 6), '#6F8A5E');
+    p.position.set(x, y, 0); p.scale.y = 0.45;
+    g.add(p);
+  });
+  g.scale.setScalar(s);
+  return g;
+}
+
+function bush(r = 0.18) {                               // 修剪成圓球的灌木
+  const b = mesh(new THREE.SphereGeometry(r, 8, 6), '#7E9A6B');
+  b.position.y = r * 0.8;
+  return b;
+}
+
+function column(h, x, z, banded = false) {             // 白色圓柱（banded：精舍那種深棕色環帶）
+  const g = new THREE.Group();
+  const ring = (r, hh, y) => { const m = mesh(new THREE.CylinderGeometry(r, r, hh, 10), '#5E4038'); m.position.y = y; g.add(m); };
+  const shaft = mesh(new THREE.CylinderGeometry(0.05, 0.05, h, 10), '#F7F5F0');
+  shaft.position.y = h / 2;
+  g.add(shaft);
+  if (banded) { ring(0.068, 0.07, 0.035); ring(0.056, 0.035, h * 0.72); ring(0.056, 0.035, h * 0.84); }
+  g.position.set(x, 0, z);
+  return g;
+}
+
+/* 靜思精舍主殿：照維基百科上的照片做
+   灰色水泥牆、淺灰白四角上翹屋頂、正面人字形門廊（卍＋匾額）、
+   四根有深棕色環帶的白柱、紅棕色木門、兩側暗紅色木欄杆 */
+function abodeHall() {
+  const g = new THREE.Group();
+  g.add(box(3.4, 0.15, 2.3, '#D8D3CB'));                // 台基
+  g.add(box(1.7, 0.08, 0.45, '#E2DED7', 0, 0, 1.35));   // 前方台階
+  g.add(box(3.0, 0.85, 1.8, '#BDB8B0', 0, 0.15));       // 灰色水泥牆
+  [-1.05, 1.05].forEach((x) => g.add(box(0.36, 0.42, 0.03, '#A0705A', x, 0.35, 0.91)));  // 木格窗
+  g.add(box(0.46, 0.62, 0.03, '#94584A', 0, 0.15, 0.91));            // 紅棕色木門
+  [-0.55, 0.55].forEach((x) => g.add(box(0.14, 0.2, 0.03, '#7D6A5E', x, 0.45, 0.91)));  // 鐘形小窗
+  const roof = hipRoof(3.7, 2.5, 0.7, '#E6E5E1');
+  roof.position.y = 1.0;
+  g.add(roof);
+  // 正面人字形門廊
+  const porch = gableRoof(1.0, 1.75, 0.55, '#E6E5E1');
+  porch.rotation.y = Math.PI / 2;
+  porch.position.set(0, 1.0, 1.15);
+  g.add(porch);
+  const tri = new THREE.Shape();                        // 門廊的灰色山牆
+  tri.moveTo(-0.72, 0); tri.lineTo(0.72, 0); tri.lineTo(0, 0.44); tri.closePath();
+  const pediment = mesh(new THREE.ShapeGeometry(tri), '#C9C5BE');
+  pediment.position.set(0, 1.03, 1.66);
+  g.add(pediment);
+  g.add(box(0.07, 0.07, 0.01, '#5E4038', 0, 1.24, 1.67));            // 卍
+  g.add(box(0.36, 0.06, 0.01, '#5E4038', 0, 1.1, 1.67));             // 「靜思精舍」匾額
+  [-0.62, -0.38, 0.38, 0.62].forEach((x) => g.add(column(0.85, x, 1.5, true)));
+  [-1, 1].forEach((s) => {                              // 暗紅色木欄杆
+    g.add(box(0.85, 0.04, 0.04, '#8E5048', s * 1.2, 0.33, 1.2));
+    for (let i = 0; i < 4; i++) g.add(box(0.04, 0.2, 0.04, '#8E5048', s * (0.82 + i * 0.25), 0.15, 1.2));
+  });
+  return g;
+}
+
+function abodeBack() {                                  // 主殿後方的樓房（深紅棕色翹角屋頂）
+  const g = new THREE.Group();
+  g.add(box(3.6, 1.3, 1.1, '#D9D5CE'));
+  for (let i = 0; i < 6; i++) g.add(box(0.3, 0.3, 0.03, '#A0705A', -1.4 + i * 0.56, 0.75, 0.56));
+  const roof = hipRoof(3.9, 1.5, 0.45, '#9C6B5E');
+  roof.position.y = 1.3;
+  g.add(roof);
+  return g;
+}
+
+/* 各地靜思堂：白牆、灰色弧形人字屋頂，中間高、兩側翼樓低（參考彰化、台南、雙和靜思堂） */
+function jingSiHall() {
+  const g = new THREE.Group();
+  g.add(box(3.0, 0.15, 1.8, '#D8D3CB'));
+  g.add(box(1.4, 1.1, 1.4, '#EEEBE6', 0, 0.15));
+  [-1.05, 1.05].forEach((x) => {
+    g.add(box(0.8, 0.7, 1.2, '#EEEBE6', x, 0.15, -0.05));
+    const r = swoopRoof(0.9, 1.3, 0.55, '#A3A5A2');
+    r.position.set(x, 0.85, -0.05);
+    g.add(r);
+  });
+  [-0.5, -0.17, 0.17, 0.5].forEach((x) => g.add(column(1.1, x, 0.8)));
+  g.add(box(0.4, 0.6, 0.03, '#9C7A5E', 0, 0.15, 0.71));
+  const main = swoopRoof(1.6, 1.6, 1.0, '#9A9C99');
+  main.position.y = 1.25;
+  g.add(main);
+  const top = mesh(new THREE.SphereGeometry(0.09, 10, 8), '#E3C77E');
+  top.position.y = 2.3;
+  g.add(top);
+  return g;
+}
+
+/* 慈濟醫院：灰色石材、左右對稱的大樓，頂樓一排拱窗（參考花蓮、大林慈濟醫院） */
+function hospital() {
+  const g = new THREE.Group();
+  const stone = '#C9C6C0', glass = '#8FA7B0';
+  g.add(box(2.7, 0.5, 1.2, '#D6D3CD', 0, 0, 0.15));     // 一樓大廳
+  g.add(box(2.9, 0.06, 1.45, '#BDB9B2', 0, 0.5, 0.2));  // 雨遮
+  g.add(box(0.6, 1.5, 0.8, '#D6D3CD', 0, 0.56, -0.2));
+  [-0.85, 0.85].forEach((x) => {
+    g.add(box(1.0, 1.6, 0.9, stone, x, 0.56, -0.15));
+    for (let f = 0; f < 3; f++) for (let c = 0; c < 3; c++)
+      g.add(box(0.16, 0.14, 0.02, glass, x - 0.3 + c * 0.3, 0.7 + f * 0.3, 0.31));
+    for (let c = 0; c < 3; c++) {                       // 頂樓拱窗
+      const arch = mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.02, 10, 1, false, -Math.PI / 2, Math.PI), glass);
+      arch.rotation.x = Math.PI / 2;
+      arch.position.set(x - 0.3 + c * 0.3, 1.82, 0.31);
+      g.add(arch, box(0.18, 0.1, 0.02, glass, x - 0.3 + c * 0.3, 1.72, 0.31));
+    }
+  });
+  return g;
+}
+
+function tzuChiWall() {                                 // 醫院門口的弧形花崗石牆
+  const geo = new THREE.CylinderGeometry(1.0, 1.0, 0.32, 16, 1, true, -0.55, 1.1);
+  const w = mesh(geo, '#BDB9B2');
+  w.material = w.material.clone();
+  w.material.side = THREE.DoubleSide;
+  w.position.y = 0.16;
+  return w;
+}
+
+function ambulance() {
+  const g = new THREE.Group();
+  g.add(box(0.7, 0.32, 0.36, '#FFFBF5', 0, 0.06), box(0.7, 0.06, 0.37, '#D98C86', 0, 0.22));
+  [-0.22, 0.22].forEach((x) => [-0.17, 0.17].forEach((z) => {
+    const w = mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.05, 8), '#5B5048');
+    w.rotation.x = Math.PI / 2; w.position.set(x, 0.07, z); g.add(w);
+  }));
+  return g;
+}
+
+/* 慈濟學校：主樓是弧形人字屋頂，旁邊是白色現代方塊樓和灰瓦迴廊（參考慈濟大學、慈濟中學） */
+function tzuChiSchool() {
+  const g = new THREE.Group();
+  g.add(box(1.4, 0.9, 1.0, '#EEEBE6'));
+  [-0.45, -0.15, 0.15, 0.45].forEach((x) => g.add(column(0.9, x, 0.6)));
+  const r = swoopRoof(1.5, 1.2, 0.75, '#9A9C99');
+  r.position.y = 0.9;
+  g.add(r);
+  // 右邊白色現代樓（平屋頂＋橫向窗帶）
+  g.add(box(1.3, 1.0, 0.75, '#F3F1EC', 1.45, 0, -0.15));
+  [0.3, 0.65].forEach((y) => g.add(box(1.15, 0.14, 0.02, '#9DB7C0', 1.45, y, 0.23)));
+  g.add(box(1.4, 0.06, 0.85, '#D6D3CD', 1.45, 1.0, -0.15));
+  // 左邊灰瓦迴廊
+  g.add(box(1.1, 0.55, 0.6, '#E6E2DA', -1.35, 0, -0.2));
+  const hr = hipRoof(1.3, 0.9, 0.28, '#9C9E9B');
+  hr.position.set(-1.35, 0.55, -0.1);
+  g.add(hr);
+  [-1.75, -1.35, -0.95].forEach((x) => g.add(column(0.55, x, 0.25)));
+  return g;
+}
+
+/* 大愛電視（關渡慈濟人文志業中心）：高塔＋階梯狀往下收的弧形翼樓＋圓形低樓 */
+function daAiTower() {
+  const g = new THREE.Group();
+  const c = '#E6E2DA';
+  g.add(box(0.7, 3.2, 0.6, c, 0.45, 0, -0.3));
+  g.add(box(0.16, 3.0, 0.02, '#6E7B83', 0.45, 0.1, 0.01));            // 中間的深色窗帶
+  g.add(box(0.95, 0.08, 0.8, '#CFCBC4', 0.45, 3.2, -0.3));            // 塔頂外擴的帽沿
+  for (let i = 0; i < 7; i++) {                         // 越高越短的翼樓
+    const len = 1.6 - i * 0.18;
+    g.add(box(len, 0.3, 0.55, c, 0.1 - len / 2, 0.55 + i * 0.32, -0.3));
+    g.add(box(len, 0.03, 0.58, '#BDB9B2', 0.1 - len / 2, 0.82 + i * 0.32, -0.3));  // 陽台線
+  }
+  const drum = mesh(new THREE.CylinderGeometry(0.62, 0.62, 0.6, 20), c);
+  drum.position.set(-0.9, 0.3, 0.45);
+  const canopy = mesh(new THREE.CylinderGeometry(0.72, 0.7, 0.06, 20), '#BDB9B2');   // 圓形低樓外擴的屋簷
+  canopy.position.set(-0.9, 0.63, 0.45);
+  const dish = mesh(new THREE.SphereGeometry(0.18, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2.5), '#F7F4EE');
+  dish.rotation.x = -Math.PI / 2.4; dish.position.set(-0.7, 0.75, 0.35);
+  g.add(drum, canopy, dish);
+  return g;
+}
+
+function canopyTent(w = 1.2, d = 0.9, color = '#FFFBF5') {   // 發放、驗血用的帳棚
+  const g = new THREE.Group();
+  [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sz]) => g.add(box(0.04, 0.6, 0.04, '#BDB9B2', sx * w / 2, 0, sz * d / 2)));
+  const roof = gableRoof(w + 0.1, d + 0.15, 0.25, color);
+  roof.position.y = 0.6;
+  g.add(roof);
+  return g;
+}
+
+function table(w = 0.8) {
+  const g = new THREE.Group();
+  g.add(box(w, 0.04, 0.3, '#F7F4EE', 0, 0.22));
+  [-1, 1].forEach((s) => g.add(box(0.03, 0.22, 0.25, '#BDB9B2', s * (w / 2 - 0.05))));
+  return g;
+}
+
+function sacks(n = 4) {                                 // 米袋
+  const g = new THREE.Group();
+  for (let i = 0; i < n; i++) {
+    const s = mesh(new THREE.CylinderGeometry(0.1, 0.12, 0.22, 8), '#E8DCC3');
+    s.position.set((i % 2) * 0.2 - 0.1, 0.11 + Math.floor(i / 2) * 0.2, 0);
+    s.rotation.z = Math.PI / 2;
+    g.add(s);
+  }
+  return g;
+}
+
+function blanketStack() {                               // 環保毛毯（摺好疊起來）
+  const g = new THREE.Group();
+  ['#C9DDF0', '#D9C8EC', '#C9DDF0', '#DCE8DA'].forEach((c, i) => g.add(box(0.36, 0.07, 0.26, c, 0, i * 0.07)));
+  return g;
+}
+
+function bambooBank() {                                 // 竹筒歲月：慈濟的起點
+  const g = new THREE.Group();
+  g.add(box(0.7, 0.2, 0.7, '#CFC8BC'));
+  const tube = mesh(new THREE.CylinderGeometry(0.3, 0.3, 1.1, 14), '#A9B884');
+  tube.position.y = 0.75;
+  g.add(tube);
+  [0.45, 1.0].forEach((y) => {
+    const ring = mesh(new THREE.TorusGeometry(0.3, 0.03, 6, 16), '#8FA06C');
+    ring.rotation.x = Math.PI / 2; ring.position.y = y; g.add(ring);
+  });
+  g.add(box(0.2, 0.02, 0.05, '#5B5048', 0, 1.3));      // 投錢的縫
+  return g;
+}
+
+function globe() {
+  const g = new THREE.Group();
+  g.add(box(0.4, 0.25, 0.4, '#CFC8BC'));
+  const ball = mesh(new THREE.SphereGeometry(0.32, 16, 12), '#9DC2CB');
+  ball.position.y = 0.6;
+  const ring = mesh(new THREE.TorusGeometry(0.4, 0.025, 6, 24), '#E3C77E');
+  ring.position.y = 0.6; ring.rotation.x = Math.PI / 2.6;
+  [[0.15, 0.72, 0.22], [-0.2, 0.52, 0.2], [0.04, 0.48, -0.28]].forEach(([x, y, z]) => {
+    const land = mesh(new THREE.SphereGeometry(0.12, 6, 4), '#A9B884');
+    land.position.set(x, y, z); land.scale.set(1, 0.6, 0.5); g.add(land);
+  });
+  g.add(ball, ring);
+  return g;
+}
+
+function fuhuiBed() {                                   // 福慧床：可摺疊的低床
+  const g = new THREE.Group();
+  g.add(box(0.5, 0.05, 0.24, '#6F8FA8', 0, 0.1));
+  [-0.2, 0.2].forEach((x) => g.add(box(0.03, 0.1, 0.22, '#5B6E7D', x)));
+  return g;
+}
+
+function container() {                                  // 運送物資的貨櫃
+  const g = new THREE.Group();
+  g.add(box(1.0, 0.45, 0.45, '#C98F7E'));
+  for (let i = 0; i < 9; i++) g.add(box(0.03, 0.43, 0.46, '#B57C6C', -0.45 + i * 0.11, 0.01));
+  return g;
+}
+
+function heartSculpture() {                             // 愛心雕塑
+  const g = new THREE.Group();
+  const c = '#E9A9A6';
+  const l = mesh(new THREE.SphereGeometry(0.28, 12, 10), c); l.position.set(-0.19, 0.95, 0);
+  const r = mesh(new THREE.SphereGeometry(0.28, 12, 10), c); r.position.set(0.19, 0.95, 0);
+  const tip = mesh(new THREE.ConeGeometry(0.44, 0.62, 16), c); tip.position.y = 0.62; tip.rotation.z = Math.PI;
+  tip.scale.z = 0.62;
+  g.add(box(0.45, 0.25, 0.45, '#CFC8BC'), l, r, tip);
+  return g;
+}
+
+function chair() {
+  const g = new THREE.Group();
+  g.add(box(0.16, 0.03, 0.16, '#8FB3CC', 0, 0.14), box(0.16, 0.16, 0.03, '#8FB3CC', 0, 0.14, -0.07));
+  [-1, 1].forEach((s) => g.add(box(0.02, 0.14, 0.14, '#BDB9B2', s * 0.07)));
+  return g;
+}
+
+/* 環保教育站：白色人字形拱棚入口＋藍字招牌、鐵皮棚、分類桶、寶特瓶磚 */
+function recycleGate() {
+  const g = new THREE.Group();
+  [-0.6, 0.6].forEach((x) => [-0.3, 0.3].forEach((z) => g.add(box(0.06, 0.7, 0.06, '#F7F5F0', x, 0, z))));
+  const roof = gableRoof(0.75, 1.5, 0.35, '#F7F5F0');
+  roof.rotation.y = Math.PI / 2;
+  roof.position.y = 0.7;
+  g.add(roof);
+  g.add(box(0.9, 0.16, 0.03, '#8FB3CC', 0, 0.82, 0.39));  // 藍字招牌
+  return g;
+}
+
+function recycleShed() {
+  const g = new THREE.Group();
+  g.add(box(1.8, 0.75, 1.0, '#A9C4C8'));                // 淺藍綠鐵皮
+  for (let i = 0; i < 10; i++) g.add(box(0.02, 0.73, 1.01, '#9AB7BB', -0.85 + i * 0.19, 0.01));
+  const roof = gableRoof(2.0, 1.2, 0.3, '#B49B8C');
+  roof.position.y = 0.75;
+  g.add(roof);
+  g.add(box(0.7, 0.55, 0.03, '#7D8C90', 0.3, 0, 0.51));  // 大門
+  return g;
+}
+
+function bottleBales() {                                // 壓好的寶特瓶磚
+  const g = new THREE.Group();
+  [[0, 0], [0.32, 0], [0.16, 0.3]].forEach(([x, y]) => g.add(box(0.3, 0.3, 0.3, '#C9DDF0', x, y)));
+  return g;
+}
+
+function bins() {
+  const g = new THREE.Group();
+  ['#8FB3CC', '#8FB3CC', '#F8E3A3', '#A9B884'].forEach((c, i) => {
+    const b = mesh(new THREE.CylinderGeometry(0.13, 0.11, 0.32, 10), c);
+    b.position.set(i * 0.3, 0.16, 0); g.add(b);
+  });
+  return g;
+}
+
+/* ────────────────────────────────────────────
+   步驟 ⑥ 造島：六角柱（上層草地 + 下層泥土）+ 擺裝飾
+   ──────────────────────────────────────────── */
+// 在半徑 maxR 的圓裡隨機挑一個點（拿來種樹、擺花）
+function randomSpot(maxR) {
+  const a = rand() * Math.PI * 2, d = Math.sqrt(rand()) * maxR;
+  return [Math.cos(a) * d, Math.sin(a) * d];
+}
+
+// blockers：記下每個障礙物的位置和大小（圓形），等一下小人走路要繞開
+function decorate(g, type, blockers, R) {
+  const spot = () => randomSpot(R * 0.72);
+  const add = (obj, x, z, r = 0, turn = 0) => {
+    obj.position.x = x; obj.position.z = z; obj.rotation.y = turn;
+    g.add(obj);
+    if (r) blockers.push({ x, z, r });
+    return obj;
+  };
+  const block = (x, z, r) => blockers.push({ x, z, r });
+  const free = (x, z, pad) => blockers.every((b) => Math.hypot(b.x - x, b.z - z) > b.r + pad);
+  const trees = (n, make = () => tree(0.8 + rand() * 0.3)) => {
+    for (let i = 0, tries = 0; i < n && tries < n * 15; tries++) {   // 位置被擋到就換地方再試
+      const [x, z] = spot();
+      if (free(x, z, 0.3)) { add(make(), x, z, 0.25, rand() * 6); i++; }
+    }
+  };
+  const ground = (w, d, color, x, z) => g.add(box(w, 0.02, d, color, x, 0, z));
+
+  if (type === 'abode') {
+    add(abodeBack(), 0, -1.8);
+    [-1.3, 0, 1.3].forEach((x) => block(x, -1.8, 0.75));
+    add(abodeHall(), 0, -0.3);
+    [-1.1, 0, 1.1].forEach((x) => block(x, -0.4, 1.0)); block(0, 1.1, 0.55);
+    const yard = mesh(new THREE.CylinderGeometry(2.3, 2.3, 0.02, 28), '#D3CFC8');   // 灰磚庭院
+    yard.position.set(0, 0.01, 2.1); g.add(yard);
+    const lawn = mesh(new THREE.CylinderGeometry(0.75, 0.75, 0.06, 20), '#8FA876');  // 圓形修剪草坪
+    lawn.position.set(0, 0.03, 2.7); g.add(lawn);
+    const hedge = mesh(new THREE.TorusGeometry(0.85, 0.12, 6, 24), '#7E9A6B');
+    hedge.rotation.x = Math.PI / 2; hedge.position.set(0, 0.1, 2.7); g.add(hedge);
+    block(0, 2.7, 1.0);
+    [[-1.0, 1.3], [1.0, 1.3], [-1.2, 3.3], [1.2, 3.3]].forEach(([x, z], i) => add(stoneLantern(i < 2), x, z, 0.2));
+    [[-2.3, 0.9], [2.3, 0.9], [-2.6, -0.6], [2.6, -0.6], [-1.9, 2.8], [1.9, 2.8]].forEach(([x, z], i) =>
+      add(pine(1.1 + (i % 2) * 0.15), x, z, 0.35, rand() * 6));
+    trees(6);
+  }
+  if (type === 'charity') {
+    add(bambooBank(), 0, 0, 0.45);
+    add(canopyTent(1.3, 0.9), -0.9, -1.0, 0.8);         // 冬令發放的帳棚
+    add(table(0.9), -0.9, -0.95);
+    add(sacks(4), -1.25, -1.3); add(blanketStack(), -0.55, -1.3);
+    [[1.2, -0.7], [1.0, 1.0], [-1.0, 1.1]].forEach(([x, z], i) =>
+      add(house(i % 2 ? '#F3E6D8' : '#EADCCB', i % 2 ? '#C98F7E' : '#B49B8C'), x, z, 0.5, rand() * 6));
+    trees(3);
+  }
+  if (type === 'medical') {
+    add(hospital(), 0, -0.7); [-0.9, 0, 0.9].forEach((x) => block(x, -0.6, 0.8));
+    add(tzuChiWall(), 0, -0.1); block(0, 0.9, 0.3);
+    [-1.1, -0.75, 0.75, 1.1].forEach((x) => add(bush(), x, 1.0, 0.18));
+    add(ambulance(), 1.3, 0.3, 0.4, 0.6);
+    trees(3);
+  }
+  if (type === 'school') {
+    ground(1.0, 1.6, '#E2D9CC', 0, 1.2);                // 鋪磚步道
+    add(tzuChiSchool(), 0, -0.9);
+    [-1.4, -0.5, 0.5, 1.4].forEach((x) => block(x, -0.9, 0.7));
+    add(box(0.03, 1.3, 0.03, '#F7F4EE'), -0.75, 0.6, 0.12);  // 旗桿
+    trees(5);
+  }
+  if (type === 'culture') {
+    add(daAiTower(), 0.2, -0.3);
+    block(0.65, -0.6, 0.5); block(-0.3, -0.6, 0.6); block(-0.7, 0.15, 0.7);
+    ground(1.6, 0.6, '#E2D9CC', 0.4, 1.0);
+    [-0.4, 0.2, 1.4].forEach((x) => add(bush(0.15), x, 1.5, 0.15));
+    trees(4);
+  }
+  if (type === 'relief') {
+    add(canopyTent(1.6, 1.2, '#EDE8E0'), -0.4, -0.6, 0.9);   // 收容區：福慧床＋隔屏
+    [-0.85, -0.25].forEach((x) => [-0.85, -0.35].forEach((z) => add(fuhuiBed(), x + 0.05, z)));
+    [-0.55, 0.05].forEach((x) => add(box(0.04, 0.35, 0.9, '#C9DDF0'), x, -0.6));  // 福慧隔屏
+    add(container(), 1.0, 0.4, 0.55, 1.2);
+    add(blanketStack(), 0.2, 0.7, 0.25); add(sacks(4), -0.3, 0.9, 0.25);
+    add(globe(), -1.2, 0.8, 0.35);
+  }
+  if (type === 'marrow') {
+    add(heartSculpture(), 0.6, 0.6, 0.5);
+    add(canopyTent(1.4, 1.0), -0.5, -0.6, 0.8);         // 驗血建檔站
+    add(table(1.0), -0.5, -0.75);
+    [-0.85, -0.5, -0.15].forEach((x) => add(chair(), x, -0.4, 0, Math.PI));
+    for (let i = 0; i < 14; i++) { const [x, z] = spot(); if (free(x, z, 0.2)) add(flower(), x, z); }
+    trees(2);
+  }
+  if (type === 'recycle') {
+    add(recycleShed(), 0.2, -0.9); [-0.5, 0.2, 0.9].forEach((x) => block(x, -0.9, 0.7));
+    add(recycleGate(), -0.9, 0.6, 0, Math.PI / 2); block(-0.9, 0.0, 0.25); block(-0.9, 1.2, 0.25);
+    add(bins(), 0.2, 0.3, 0.45);
+    add(bottleBales(), 0.8, 0.9, 0.35);
+    add(table(0.8), 0.0, 1.1, 0.4);
+    trees(2);
+  }
+  if (type === 'community') {
+    add(jingSiHall(), 0, -0.6); [-1.1, 0, 1.1].forEach((x) => block(x, -0.6, 0.8));
+    ground(0.8, 1.4, '#E2D9CC', 0, 1.0);
+    [[-1.2, 0.9], [1.2, 0.9]].forEach(([x, z]) => add(house('#F3E6D8', '#B49B8C'), x, z, 0.5, rand() * 6));
+    for (let i = 0; i < 8; i++) { const [x, z] = spot(); if (free(x, z, 0.2)) add(flower(), x, z); }
+    trees(2);
+  }
+}
+
+/* ────────────────────────────────────────────
+   步驟 ⑥-2 島體：9 座一樣大的六角島緊密排在一起（參考 HEART 政策島的做法）
+   每座島 = 有花紋的地面 + 外圈步道 + 漸層側面 + 周圍淺水和浪花
+   ──────────────────────────────────────────── */
+// 地面花紋：用 canvas 畫一張小圖貼在島面（磁磚或草地）
+const GROUND = {
+  abode:     { base: '#DCD3C4', tiles: 28, cols: ['#DED6C8', '#D6CDBD', '#E2DACD'], grout: '#C9BFAE' },  // 精舍的灰磚
+  charity:   { base: '#B9C99C', speck: ['#A9BC8A', '#C9D6AE'] },
+  medical:   { base: '#BFCDA2', speck: ['#AFC090', '#CCD8B2'] },
+  school:    { base: '#C3CFA0', speck: ['#B2C08E', '#D2DBB2'] },
+  culture:   { base: '#D6CFC2', tiles: 24, cols: ['#D8D1C4', '#D0C8BA', '#DDD6CA'], grout: '#C2B9AA' },
+  relief:    { base: '#CDBE9F', speck: ['#BFAF8F', '#DACDB2'] },                                         // 碎石地
+  marrow:    { base: '#C6D2A6', speck: ['#B6C496', '#E9C9C3'] },
+  recycle:   { base: '#CFC9BE', tiles: 32, cols: ['#D2CCC1', '#C9C3B7', '#D6D0C6'], grout: '#BBB4A8' },  // 水泥地
+  community: { base: '#BCCC9C', speck: ['#ADBF8C', '#CCD9B0'] },
+};
+const PATH_TINT = { abode: '#EAE2D4', charity: '#EADCC6', medical: '#E6E2DA', school: '#F0E2B8', culture: '#E2DCD2',
+                    relief: '#E3D3B5', marrow: '#F0D8D4', recycle: '#DCD7CE', community: '#EADCC6' };
+
+function groundTexture(type) {
+  const s = GROUND[type];
+  const c = document.createElement('canvas');
+  c.width = c.height = 256;
+  const g = c.getContext('2d');
+  g.fillStyle = s.base;
+  g.fillRect(0, 0, 256, 256);
+  if (s.tiles) {
+    for (let y = 0; y < 256; y += s.tiles) for (let x = 0; x < 256; x += s.tiles) {
+      g.fillStyle = s.cols[Math.floor(rand() * s.cols.length)];
+      g.fillRect(x + 1, y + 1, s.tiles - 2, s.tiles - 2);
+    }
+    g.strokeStyle = s.grout; g.lineWidth = 2;
+    for (let i = 0; i <= 256; i += s.tiles) {
+      g.beginPath(); g.moveTo(i, 0); g.lineTo(i, 256); g.moveTo(0, i); g.lineTo(256, i); g.stroke();
+    }
+  } else {
+    for (let i = 0; i < 700; i++) {
+      g.globalAlpha = 0.3 + rand() * 0.5;
+      g.fillStyle = s.speck[Math.floor(rand() * s.speck.length)];
+      g.beginPath(); g.arc(rand() * 256, rand() * 256, 1 + rand() * 2.5, 0, Math.PI * 2); g.fill();
+    }
+    g.globalAlpha = 1;
+  }
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(2, 2);
+  return tex;
+}
+
+// 六角環：步道、路緣石、淺水區、浪花都用它
+function hexRing(rOut, rIn, color, opts = {}) {
+  const shape = new THREE.Shape(), hole = new THREE.Path();
+  for (let k = 0; k <= 6; k++) {
+    const [x, z] = hexPoint(rOut, k), [hx, hz] = hexPoint(rIn, k);
+    if (k) { shape.lineTo(x, -z); hole.lineTo(hx, -hz); } else { shape.moveTo(x, -z); hole.moveTo(hx, -hz); }
+  }
+  shape.holes.push(hole);
+  const geo = new THREE.ShapeGeometry(shape);
+  geo.rotateX(-Math.PI / 2);
+  const m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color, roughness: 0.9, ...opts }));
+  m.receiveShadow = true;
+  return m;
+}
+
+// 島的側面：從島色漸漸變成水色，看起來像清澈的淺水，而不是一面泥土牆
+function islandSide(groundColor) {
+  const h = TOP - WATER_Y + 0.6;
+  const geo = new THREE.CylinderGeometry(R, R, h, 6, 6, true);
+  const top = new THREE.Color(groundColor).lerp(new THREE.Color('#F4EFE6'), 0.25);
+  const water = new THREE.Color('#9DC2CB');
+  const pos = geo.attributes.position, cols = [];
+  for (let i = 0; i < pos.count; i++) {
+    const t = 0.5 - pos.getY(i) / h;                    // 0 = 上緣、1 = 下緣
+    const c = top.clone().lerp(water, Math.min(1, t * 1.3));
+    cols.push(c.r, c.g, c.b);
+  }
+  geo.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3));
+  const m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9, flatShading: true }));
+  m.position.y = TOP - h / 2;
+  m.castShadow = m.receiveShadow = true;
+  return m;
+}
+
+// 步道路網：小人沿著這些點走，也會過橋走到隔壁島
+const pathNodes = [], pathAdj = [], ringNodes = [];
+const addNode = (p, island) => { pathNodes.push({ p, island }); pathAdj.push([]); return pathNodes.length - 1; };
+const link = (a, b, arch = 0) => {
+  const d = pathNodes[a].p.distanceTo(pathNodes[b].p);
+  pathAdj[a].push({ to: b, d, arch });
+  pathAdj[b].push({ to: a, d, arch });
+};
+
+const islandMeshes = [];                               // 等一下滑鼠點擊要用
+const islandGroups = [];
+const islandBlockers = [];                             // 每座島的障礙物清單（種樹時避開建築）
+const islandOutlines = [];
+ISLANDS.forEach((data, i) => {
+  data.pos = axialToWorld(data.ax);
+  const g = new THREE.Group();
+  g.position.copy(data.pos);
+
+  const top = new THREE.Mesh(new THREE.CylinderGeometry(R, R, 0.06, 6),
+    new THREE.MeshStandardMaterial({ map: groundTexture(data.type), roughness: 0.92 }));
+  top.position.y = TOP - 0.03;
+  top.receiveShadow = true;
+  top.userData.index = i;
+  g.add(top, islandSide(GROUND[data.type].base));
+
+  const path = hexRing(PATH_R + 0.22, PATH_R - 0.22, PATH_TINT[data.type]);   // 外圈步道
+  path.position.y = TOP + 0.005;
+  const curb = hexRing(R, R - 0.1, '#E9E0D2');                               // 島邊的路緣石
+  curb.position.y = TOP + 0.01;
+  const inner = hexRing(PATH_R - 0.22, PATH_R - 0.29, '#E9E0D2');
+  inner.position.y = TOP + 0.01;
+  const shallow = hexRing(R + 1.0, R - 0.02, '#C3DEDD', { transparent: true, opacity: 0.55, depthWrite: false });
+  shallow.position.y = WATER_Y + 0.04;
+  const foam = hexRing(R + 0.2, R - 0.02, '#F6FBFA', { transparent: true, opacity: 0.7, depthWrite: false });
+  foam.position.y = WATER_Y + 0.05;
+  g.add(path, curb, inner, shallow, foam);
+  const outline = hexRing(R + 0.14, R - 0.02, '#7E9466', { transparent: true });   // 選到或滑過清單時的外框
+  outline.position.y = TOP + 0.06;
+  outline.visible = false;
+  g.add(outline);
+  islandOutlines.push(outline);
+
+  // 建築縮小一點，放在步道圍起來的中間
+  const s = data.type === 'abode' ? 0.56 : 0.78;
+  const deco = new THREE.Group();
+  deco.position.y = TOP;
+  deco.scale.setScalar(s);
+  const blockers = [];
+  decorate(deco, data.type, blockers, data.type === 'abode' ? 5 : 3);
+  islandBlockers.push(blockers.map((b) => ({ x: b.x * s, z: b.z * s, r: b.r * s })));
+  g.add(deco);
+
+  // 名牌：中央島不編號，外圍島依序 01～08
+  const div = document.createElement('div');
+  div.className = i === 0 ? 'label main' : 'label';
+  div.innerHTML = i === 0 ? data.name : `<b>${String(i).padStart(2, '0')}</b>${data.name}`;
+  div.addEventListener('click', () => focusIsland(i));
+  const label = new CSS2DObject(div);
+  label.position.set(0, i === 0 ? 2.9 : 2.4, 0);
+  g.add(label);
+
+  scene.add(g);
+  islandMeshes.push(top);
+  islandGroups.push(g);
+
+  // 步道上的 12 個點：6 個轉角＋6 個邊的中點，依序連成一圈
+  const ids = [];
+  for (let k = 0; k < 6; k++) {
+    const [vx, vz] = hexPoint(PATH_R, k), [wx, wz] = hexPoint(PATH_R, k + 1);
+    ids.push(addNode(new THREE.Vector3(data.pos.x + vx, TOP, data.pos.z + vz), i));
+    ids.push(addNode(new THREE.Vector3(data.pos.x + (vx + wx) / 2, TOP, data.pos.z + (vz + wz) / 2), i));
+  }
+  for (let k = 0; k < 12; k++) link(ids[k], ids[(k + 1) % 12]);
+  ringNodes.push(ids);
+});
+
+// 短短的小拱橋：跟中央精舍相連的是石橋，其他是木橋
+const BRIDGE_ARCH = 0.16;
+function bridge(a, b, stone) {
+  const g = new THREE.Group();
+  const len = a.distanceTo(b);
+  const lift = (t) => Math.sin(t * Math.PI) * BRIDGE_ARCH;
+  const tilt = (t) => -Math.atan((BRIDGE_ARCH * Math.PI / len) * Math.cos(t * Math.PI));
+  const deck = stone ? ['#D9D1C2', '#CCC3B3'] : ['#C4A484', '#B4946F'];
+  for (let s = 0; s <= 8; s++) {
+    const t = s / 8;
+    const plank = box(0.5, 0.05, len / 9 + 0.02, deck[s % 2], 0, lift(t) - 0.02, -len / 2 + t * len);
+    plank.rotation.x = tilt(t);
+    g.add(plank);
+  }
+  for (const side of [-1, 1]) {
+    if (stone) {                                        // 石橋：兩側低矮石牆
+      for (let s = 0; s < 4; s++) {
+        const t = (s + 0.5) / 4;
+        const w = box(0.06, 0.14, len / 4 + 0.02, '#E6DED0', side * 0.25, lift(t) + 0.02, -len / 2 + t * len);
+        w.rotation.x = tilt(t);
+        g.add(w);
+      }
+    } else {                                            // 木橋：白色欄杆柱＋木扶手
+      for (let s = 0; s <= 4; s++) {
+        const t = s / 4;
+        g.add(box(0.035, 0.24, 0.035, '#FFF8F4', side * 0.25, lift(t) + 0.03, -len / 2 + t * len));
+      }
+      g.add(box(0.03, 0.03, len, '#9A7454', side * 0.25, 0.27 + BRIDGE_ARCH * 0.66, 0));
+    }
+  }
+  g.position.copy(a.clone().lerp(b, 0.5));
+  g.rotation.y = Math.atan2(b.x - a.x, b.z - a.z);
+  scene.add(g);
+}
+
+const NEIGHBORS = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, -1], [-1, 1]];
+const byAxial = new Map(ISLANDS.map((d, i) => [d.ax.join(','), i]));
+ISLANDS.forEach((d, i) => NEIGHBORS.forEach(([dq, dr]) => {
+  const j = byAxial.get([d.ax[0] + dq, d.ax[1] + dr].join(','));
+  if (j === undefined || j < i) return;                 // 沒有鄰居，或這座橋已經搭過了
+  const dir = axialToWorld([dq, dr]).normalize();
+  // 找兩座島步道上「面對面」的那個邊中點，從那裡搭橋
+  const facing = (isl, sign) => {
+    const goal = ISLANDS[isl].pos.clone().addScaledVector(dir, sign * PATH_R).setY(TOP);
+    return ringNodes[isl].filter((_, k) => k % 2).reduce((best, id) =>
+      pathNodes[id].p.distanceTo(goal) < pathNodes[best].p.distanceTo(goal) ? id : best);
+  };
+  const na = facing(i, 1), nb = facing(j, -1);
+  link(na, nb, BRIDGE_ARCH);
+  bridge(pathNodes[na].p, pathNodes[nb].p, i === 0 || j === 0);
+}));
+
+/* ────────────────────────────────────────────
+   步驟 ⑦ 湖、湖岸、山、森林、小島、船和雲
+   島群在一座湖的中間，四周被陸地和山圍起來
+   ──────────────────────────────────────────── */
+const sea = new THREE.Mesh(new THREE.CircleGeometry(95, 64),
+  new THREE.MeshStandardMaterial({ color: '#9DC2CB', roughness: 0.5 }));
+sea.rotation.x = -Math.PI / 2;
+sea.position.y = WATER_Y;
+sea.receiveShadow = true;
+scene.add(sea);
+
+const LAKE = 25;                                        // 湖的半徑
+const LAND_Y = WATER_Y + 0.35;
+const land = new THREE.Mesh(new THREE.RingGeometry(LAKE, 95, 72, 1).rotateX(-Math.PI / 2), mat('#B7C69A'));
+land.position.y = LAND_Y;
+land.receiveShadow = true;
+const beach = new THREE.Mesh(new THREE.RingGeometry(LAKE, LAKE + 1.4, 72, 1).rotateX(-Math.PI / 2), mat('#E6DCC6'));
+beach.position.y = LAND_Y + 0.01;
+beach.receiveShadow = true;
+const bank = new THREE.Mesh(new THREE.CylinderGeometry(LAKE, LAKE, 0.6, 72, 1, true), mat('#DCCFB6'));
+bank.material.side = THREE.DoubleSide;
+bank.position.y = LAND_Y - 0.3;
+scene.add(land, beach, bank);
+
+// 遠方的山：北邊是中央山脈（精舍背後的山），其他方向是低矮的丘陵
+function hill(x, z, r, h, color) {
+  r *= 0.8; h *= 0.55;                                  // 山不要太高，才不會壓住畫面
+  const m = mesh(new THREE.ConeGeometry(r, h, 8), color);
+  m.position.set(x, LAND_Y + h / 2, z);
+  scene.add(m);
+}
+[[-14, -46, 14, 13, '#8FA27F'], [4, -50, 17, 17, '#869A77'], [22, -44, 12, 11, '#94A684'],
+ [-32, -36, 11, 9, '#9AAB88'], [-44, -10, 10, 8, '#A3B48F'], [-40, 12, 9, 6, '#A9B994'],
+ [42, -20, 11, 8, '#9DAE8A'], [46, 6, 10, 6, '#A3B48F'], [34, 30, 12, 6, '#A9B994'],
+ [-30, 34, 10, 5, '#ADBC97'], [-6, -40, 8, 9, '#8FA27F'], [36, -36, 9, 9, '#94A684']].forEach((m) => hill(...m));
+
+// 湖岸的森林和小房子
+for (let i = 0; i < 150; i++) {
+  const a = rand() * Math.PI * 2, d = LAKE + 2 + rand() * 14;
+  const t = tree(1.3 + rand() * 0.9);
+  t.position.set(Math.cos(a) * d, LAND_Y, Math.sin(a) * d);
+  scene.add(t);
+}
+for (let i = 0; i < 14; i++) {
+  const a = rand() * Math.PI * 2, d = LAKE + 2.2 + rand() * 2;
+  const h = house(rand() > 0.5 ? '#F3E6D8' : '#EADCCB', rand() > 0.5 ? '#C98F7E' : '#B49B8C');
+  h.scale.setScalar(1.5);
+  h.position.set(Math.cos(a) * d, LAND_Y, Math.sin(a) * d);
+  h.rotation.y = -a + Math.PI / 2;
+  scene.add(h);
+}
+
+// 湖中的小裝飾島：風車、涼亭、小樹林
+const windmills = [];
+function islet(x, z, r, kind) {
+  const g = new THREE.Group();
+  const base = mesh(new THREE.CylinderGeometry(r, r * 1.1, 0.7, 14), '#E6DCC6');
+  base.position.y = WATER_Y + 0.25;
+  const grass = mesh(new THREE.CylinderGeometry(r * 0.85, r * 0.85, 0.08, 14), '#B7C69A');
+  grass.position.y = WATER_Y + 0.62;
+  g.add(base, grass);
+  const y = WATER_Y + 0.66;
+  if (kind === 'windmill') {
+    const pole = mesh(new THREE.CylinderGeometry(0.05, 0.08, 2.2, 6), '#FFFBF5');
+    pole.position.y = y + 1.1;
+    const hub = new THREE.Group();
+    hub.position.set(0, y + 2.2, 0.1);
+    for (let k = 0; k < 3; k++) {
+      const blade = box(0.08, 1.0, 0.03, '#FFFBF5', 0, 0, 0);
+      blade.geometry.translate(0, 0.5, 0);
+      blade.rotation.z = (k * Math.PI * 2) / 3;
+      hub.add(blade);
+    }
+    g.add(pole, hub);
+    windmills.push(hub);
+  }
+  if (kind === 'pavilion') {
+    [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sz]) => g.add(box(0.06, 0.6, 0.06, '#B49B8C', sx * 0.35, y, sz * 0.35)));
+    const roof = hipRoof(1.0, 1.0, 0.35, '#C98F7E');
+    roof.position.y = y + 0.6;
+    g.add(roof);
+  }
+  if (kind === 'grove') for (let k = 0; k < 4; k++) {
+    const t = tree(0.8 + rand() * 0.4);
+    t.position.set((rand() - 0.5) * r, y, (rand() - 0.5) * r);
+    g.add(t);
+  }
+  g.position.set(x, 0, z);
+  scene.add(g);
+}
+islet(-13, -6, 1.6, 'windmill'); islet(-15, -2, 1.1, 'windmill');
+islet(14, 9, 1.5, 'pavilion'); islet(12, -14, 1.3, 'grove'); islet(-11, 15, 1.4, 'grove');
+
+// 慢慢繞著湖航行的小帆船
+const boats = [];
+for (let i = 0; i < 5; i++) {
+  const b = new THREE.Group();
+  const hull = box(0.7, 0.18, 0.28, '#FFFBF5');
+  const sail = new THREE.Mesh(new THREE.ConeGeometry(0.28, 0.75, 3),
+    new THREE.MeshStandardMaterial({ color: ['#F4C7C3', '#FFFBF5', '#C9DDF0'][i % 3], roughness: 0.8, flatShading: true }));
+  sail.position.y = 0.55;
+  sail.scale.z = 0.15;
+  b.add(hull, sail);
+  b.userData = { r: 16 + rand() * 6, a: rand() * Math.PI * 2, v: (0.02 + rand() * 0.02) * (i % 2 ? 1 : -1) };
+  scene.add(b);
+  boats.push(b);
+}
+
+const clouds = [];
+for (let i = 0; i < 8; i++) {
+  const c = new THREE.Group();
+  for (let j = 0; j < 4; j++) {
+    const puff = new THREE.Mesh(new THREE.SphereGeometry(0.8 + rand() * 0.6, 10, 8),
+      new THREE.MeshStandardMaterial({ color: '#FFFFFF', roughness: 1, flatShading: true }));
+    puff.position.set(j * 0.9, rand() * 0.4, rand() * 0.6);
+    c.add(puff);
+  }
+  c.position.set(-45 + rand() * 90, 15 + rand() * 5, -45 + rand() * 30);   // 飄在島群後上方，不擋住島
+  scene.add(c);
+  clouds.push(c);
+}
+
+// 星星（只有晚上看得到）
+const starPos = [];
+for (let i = 0; i < 300; i++) {
+  const a = rand() * Math.PI * 2, h = 0.08 + rand() * 0.5;
+  starPos.push(Math.cos(a) * 70 * Math.sqrt(1 - h * h), h * 70, Math.sin(a) * 70 * Math.sqrt(1 - h * h));
+}
+const starGeo = new THREE.BufferGeometry();
+starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starPos, 3));
+const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({
+  color: '#FFF4D6', size: 2, sizeAttenuation: false, transparent: true, opacity: 0, fog: false }));
+scene.add(stars);
+
+/* ────────────────────────────────────────────
+   步驟 ⑦-2 時段：每個時段是一組「天色＋光線＋海色」
+   想調氣氛，改這裡的顏色和數字就好
+   ──────────────────────────────────────────── */
+const TIMES = {
+  sunrise: { bg: '#F6DCCB', sky: '#FFE6D6', ground: '#C9BBB0', hemi: 1.6, sunColor: '#FFC9A3', sun: 2.2,
+             sunPos: [-20, 10, 10], sea: '#D4CDD4', lamp: 0.4, stars: 0 },
+  day:     { bg: '#F4EFE6', sky: '#FFF6E8', ground: '#B7C7B0', hemi: 1.6, sunColor: '#FFE9D2', sun: 2.2,
+             sunPos: [15, 25, 10],  sea: '#9DC2CB', lamp: 0,   stars: 0 },
+  dusk:    { bg: '#E9C6B8', sky: '#F5C9B0', ground: '#B3A2A4', hemi: 1.4, sunColor: '#F29E7E', sun: 1.6,
+             sunPos: [20, 9, -8],   sea: '#C2B3C6', lamp: 1,   stars: 0.25 },
+  night:   { bg: '#4A5268', sky: '#7884A6', ground: '#353B4D', hemi: 0.9, sunColor: '#AFC0E8', sun: 0.6,
+             sunPos: [-10, 20, -10], sea: '#647C93', lamp: 2.5, stars: 1 },
+};
+const COLOR_KEYS = ['bg', 'sky', 'ground', 'sunColor', 'sea'];
+const NUM_KEYS = ['hemi', 'sun', 'lamp', 'stars'];
+
+function makeState(p) {
+  const s = { sunPos: new THREE.Vector3(...p.sunPos) };
+  COLOR_KEYS.forEach((k) => (s[k] = new THREE.Color(p[k])));
+  NUM_KEYS.forEach((k) => (s[k] = p[k]));
+  return s;
+}
+const nowTime = makeState(TIMES.day);                  // 畫面上「目前」的樣子
+let goalTime = makeState(TIMES.day);                   // 要慢慢變成的樣子
+
+function setTime(key) {
+  goalTime = makeState(TIMES[key]);
+  document.querySelectorAll('#time button').forEach((b) => b.classList.toggle('on', b.dataset.time === key));
+}
+document.querySelectorAll('#time button').forEach((b) => (b.onclick = () => setTime(b.dataset.time)));
+
+// 每一格畫面往目標靠近一點點，就會有漸變效果
+function stepTime() {
+  const a = 0.04;
+  COLOR_KEYS.forEach((k) => nowTime[k].lerp(goalTime[k], a));
+  NUM_KEYS.forEach((k) => (nowTime[k] += (goalTime[k] - nowTime[k]) * a));
+  nowTime.sunPos.lerp(goalTime.sunPos, a);
+
+  scene.background.copy(nowTime.bg);
+  scene.fog.color.copy(nowTime.bg);
+  hemi.color.copy(nowTime.sky);
+  hemi.groundColor.copy(nowTime.ground);
+  hemi.intensity = nowTime.hemi;
+  sun.color.copy(nowTime.sunColor);
+  sun.intensity = nowTime.sun;
+  sun.position.copy(nowTime.sunPos);
+  sea.material.color.copy(nowTime.sea);
+  lamps.forEach((l) => (l.material.emissiveIntensity = 0.5 + nowTime.lamp));
+  lampLights.forEach((l) => (l.intensity = nowTime.lamp * 6));
+  stars.material.opacity = nowTime.stars;
+}
+
+/* ────────────────────────────────────────────
+   步驟 ⑦-3 小人物：穿慈濟各種制服，在島上走來走去
+   制服資料參考慈濟官網〈慈濟制服〉：
+   ・藍天白雲：藍上衣＋白褲子，最常穿的工作服
+   ・灰天白雲：白領灰上衣＋白褲，培訓志工穿
+   ・八正道：女眾的藍色洋裝，衣上八顆釦子（代表八正道）
+   ・旗袍：女眾委員的正式大禮服
+   ・西裝：男眾慈誠的正式大禮服
+   ・胸前志工證：委員有藍色蓮花、慈誠有綠色蓮花
+   ──────────────────────────────────────────── */
+const UNIFORMS = [
+  { key: 'blue',    name: '藍天白雲', who: '志工工作服',   top: '#2D4F86', bottom: '#F6F4EF', weight: 5 },
+  { key: 'grey',    name: '灰天白雲', who: '培訓志工',     top: '#9E9D98', collar: '#FFFFFF', bottom: '#F6F4EF', weight: 3 },
+  { key: 'bazheng', name: '八正道',   who: '女眾委員',     dress: '#29436F', buttons: true, female: true, lotus: '#4A78C2', weight: 2 },
+  { key: 'qipao',   name: '旗袍',     who: '委員大禮服',   dress: '#1F3560', long: true, female: true, lotus: '#4A78C2', weight: 1 },
+  { key: 'suit',    name: '西裝',     who: '慈誠大禮服',   top: '#22385F', shirt: '#FFFFFF', bottom: '#22385F', lotus: '#5FA36B', weight: 1 },
+];
+const SKIN = ['#F2D5C0', '#EBC7AC', '#DDB394'];
+const HAIR = ['#3B302A', '#4A3B32', '#2E2A28', '#5A4A40'];
+
+// 同顏色共用一個材質，30 個人也不會卡
+const pmats = {};
+const pm = (c) => (pmats[c] ||= new THREE.MeshStandardMaterial({ color: c, roughness: 0.85, flatShading: true }));
+function part(geo, color, x = 0, y = 0, z = 0) {
+  const m = new THREE.Mesh(geo, pm(color));
+  m.position.set(x, y, z);
+  m.castShadow = true;
+  return m;
+}
+
+// 手腳要能擺動，所以做成「關節在頂端」的群組
+function limb(r, h, color, x, y) {
+  const pivot = new THREE.Group();
+  pivot.position.set(x, y, 0);
+  pivot.add(part(new THREE.CylinderGeometry(r, r * 0.9, h, 6), color, 0, -h / 2, 0));
+  return pivot;
+}
+
+function person(u) {
+  const g = new THREE.Group();
+  const skin = SKIN[Math.floor(rand() * SKIN.length)];
+  const dressed = !!u.dress;
+
+  // 腿（穿洋裝的露出膚色小腿）
+  const legColor = dressed ? skin : u.bottom;
+  const legL = limb(0.034, 0.17, legColor, 0.042, 0.17);
+  const legR = limb(0.034, 0.17, legColor, -0.042, 0.17);
+  g.add(legL, legR);
+
+  // 身體
+  if (dressed) {
+    const h = u.long ? 0.31 : 0.24;                     // 旗袍比較長
+    const dress = part(new THREE.CylinderGeometry(0.068, u.long ? 0.082 : 0.11, h, 8), u.dress, 0, 0.33 - h / 2, 0);
+    g.add(dress);
+    if (u.buttons) {                                    // 八顆釦子
+      for (let i = 0; i < 8; i++) {
+        const y = 0.315 - i * 0.022;
+        const r = 0.068 + (0.11 - 0.068) * ((0.33 - y) / h);
+        g.add(part(new THREE.SphereGeometry(0.008, 5, 4), '#E8E2D6', 0, y, r + 0.002));
+      }
+    }
+    if (u.long) g.add(part(new THREE.CylinderGeometry(0.035, 0.04, 0.035, 8), u.dress, 0, 0.345, 0));  // 立領
+  } else {
+    g.add(part(new THREE.CylinderGeometry(0.068, 0.082, 0.17, 8), u.top, 0, 0.25, 0));
+    if (u.collar) {                                     // 灰天白雲的白領
+      const c = part(new THREE.TorusGeometry(0.045, 0.016, 5, 10), u.collar, 0, 0.335, 0);
+      c.rotation.x = Math.PI / 2;
+      g.add(c);
+    }
+    if (u.shirt) g.add(part(new THREE.BoxGeometry(0.026, 0.09, 0.01), u.shirt, 0, 0.29, 0.07));  // 西裝裡的白襯衫
+  }
+
+  // 手臂（袖子跟上衣同色）
+  const sleeve = u.dress || u.top;
+  const armL = limb(0.022, 0.14, sleeve, 0.084, 0.32);
+  const armR = limb(0.022, 0.14, sleeve, -0.084, 0.32);
+  g.add(armL, armR);
+
+  // 頭和頭髮
+  g.add(part(new THREE.SphereGeometry(0.085, 10, 8), skin, 0, 0.43, 0));
+  const hair = HAIR[Math.floor(rand() * HAIR.length)];
+  const cap = part(new THREE.SphereGeometry(0.09, 10, 8, 0, Math.PI * 2, 0, Math.PI * 0.42), hair, 0, 0.44, -0.008);
+  g.add(cap);
+  [-0.03, 0.03].forEach((x) => g.add(part(new THREE.SphereGeometry(0.011, 6, 4), '#3B302A', x, 0.43, 0.078)));  // 眼睛
+  if (u.female || rand() > 0.6) g.add(part(new THREE.SphereGeometry(0.04, 8, 6), hair, 0, 0.47, -0.08));  // 包包頭
+
+  // 胸前志工證＋蓮花
+  g.add(part(new THREE.BoxGeometry(0.028, 0.036, 0.006), '#FFFFFF', 0.04, 0.29, 0.07));
+  if (u.lotus) g.add(part(new THREE.SphereGeometry(0.008, 5, 4), u.lotus, 0.04, 0.28, 0.075));
+
+  g.userData.limbs = { legL, legR, armL, armR };
+  return g;
+}
+
+// 依權重隨機抽一套制服（藍天白雲最常見）
+const totalW = UNIFORMS.reduce((s, u) => s + u.weight, 0);
+function pickUniform() {
+  let n = rand() * totalW;
+  return UNIFORMS.find((u) => (n -= u.weight) < 0) || UNIFORMS[0];
+}
+
+// 小人沿著步道路網走：走到一個點，就挑下一段路（不走回頭路），偶爾停下來發呆
+const PEOPLE_PER_ISLAND = { abode: 10, charity: 5, medical: 5, school: 6, culture: 4, relief: 5, marrow: 4, recycle: 5, community: 5 };
+const walkers = [];
+ISLANDS.forEach((data, i) => {
+  for (let n = 0; n < PEOPLE_PER_ISLAND[data.type]; n++) {
+    const node = ringNodes[i][Math.floor(rand() * 12)];
+    const body = person(pickUniform());
+    body.scale.setScalar(0.85);
+    scene.add(body);
+    const p = pathNodes[node].p;
+    walkers.push({ body, from: node, to: node, t: 1, len: 1, arch: 0, x: p.x, y: TOP, z: p.z,
+                   lane: (rand() - 0.5) * 0.26, wait: rand() * 3, speed: 0.35 + rand() * 0.2, phase: rand() * 6 });
+  }
+});
+
+function nextEdge(w) {
+  const opts = pathAdj[w.to].filter((e) => e.to !== w.from);
+  const stay = opts.filter((e) => !e.arch);
+  // 遇到橋口時，大約三分之一的機會過橋去隔壁島
+  const pool = opts.length > stay.length && Math.random() < 0.35 ? opts.filter((e) => e.arch) : stay.length ? stay : opts;
+  const e = pool[Math.floor(Math.random() * pool.length)];
+  w.from = w.to; w.to = e.to; w.len = e.d; w.arch = e.arch; w.t = 0;
+}
+
+function stepPeople(dt) {
+  walkers.forEach((w) => {
+    const { legL, legR, armL, armR } = w.body.userData.limbs;
+    let swing = 0;
+
+    if (w.wait > 0) {                                   // 停下來發呆
+      w.wait -= dt;
+    } else if (w.t >= 1) {                              // 走到點上了：休息一下，或挑下一段路
+      if (Math.random() < 0.1) w.wait = 1 + Math.random() * 3;
+      else nextEdge(w);
+    } else {
+      w.t = Math.min(1, w.t + (w.speed * dt) / w.len);
+      const a = pathNodes[w.from].p, b = pathNodes[w.to].p;
+      const dx = b.x - a.x, dz = b.z - a.z;
+      // 慢慢轉向前進方向
+      let diff = Math.atan2(dx, dz) - w.body.rotation.y;
+      diff = Math.atan2(Math.sin(diff), Math.cos(diff));
+      w.body.rotation.y += diff * Math.min(1, dt * 8);
+      w.phase += dt * w.speed * 28;
+      swing = Math.sin(w.phase) * 0.6;
+      w.x = a.x + dx * w.t;
+      w.z = a.z + dz * w.t;
+      w.y = TOP + Math.sin(w.t * Math.PI) * w.arch;     // 過拱橋時會先上坡再下坡
+      if (!w.arch) {                                    // 每個人走在步道稍微不同的位置，才不會疊在一起
+        const c = ISLANDS[pathNodes[w.from].island].pos;
+        const ox = w.x - c.x, oz = w.z - c.z, l = Math.hypot(ox, oz) || 1;
+        w.x += (ox / l) * w.lane;
+        w.z += (oz / l) * w.lane;
+      }
+    }
+
+    // 手腳一前一後擺動，身體微微上下跳
+    legL.rotation.x = swing;
+    legR.rotation.x = -swing;
+    armL.rotation.x = -swing * 0.8;
+    armR.rotation.x = swing * 0.8;
+    w.body.position.set(w.x, w.y + Math.abs(Math.sin(w.phase)) * (swing ? 0.015 : 0), w.z);
+  });
+}
+
+// 左上角的制服圖例
+document.getElementById('legend').innerHTML = UNIFORMS.map((u) => {
+  const a = u.dress || u.top, b = u.dress || u.bottom;
+  return `<div><i style="background:linear-gradient(${a} 55%, ${b} 55%)"></i><b>${u.name}</b><span>${u.who}</span></div>`;
+}).join('');
+
+/* ────────────────────────────────────────────
+   步驟 ⑧ 互動：點島 → 鏡頭飛過去 + 滑出說明卡
+   ──────────────────────────────────────────── */
+const camGoal = { pos: null, target: null };            // 鏡頭要飛去哪
+const card = document.getElementById('card');
+const listEl = document.getElementById('list');
+const num = (i) => String(i).padStart(2, '0');
+let selected = -1, hovered = -1;
+
+function updateOutlines() {
+  islandOutlines.forEach((o, i) => {
+    o.visible = i === selected || i === hovered;
+    o.material.opacity = i === selected ? 1 : 0.55;
+  });
+}
+
+// 右側清單：每座島一列，點了展開並飛過去
+ISLANDS.forEach((d, i) => {
+  const li = document.createElement('li');
+  li.dataset.i = i;
+  li.innerHTML = `<button class="row"><span class="no">${num(i)}</span><span class="nm">${d.name}</span>` +
+    `<span class="tg">${i === 0 ? '中心' : d.tag === '四大志業' ? '志業' : '法印'}</span></button>` +
+    `<div class="more"><ol>${WORKS[d.type].items.map((w) => `<li>${w.t}</li>`).join('')}</ol></div>`;
+  li.querySelector('.row').onclick = () => (selected === i ? closeCard() : focusIsland(i));
+  li.querySelectorAll('.more li').forEach((w, k) => (w.onclick = () => openWork(k)));
+  li.onmouseenter = () => { hovered = i; updateOutlines(); };
+  li.onmouseleave = () => { hovered = -1; updateOutlines(); };
+  listEl.appendChild(li);
+});
+
+// 搜尋＋分頁篩選
+let filter = 'all';
+function applyFilter() {
+  const q = document.getElementById('search').value.trim();
+  let shown = 0;
+  ISLANDS.forEach((d, i) => {
+    const inTab = filter === 'all' || (filter === 'four' ? d.tag === '四大志業' : i > 0);
+    const works = WORKS[d.type].items.flatMap((w) => [w.t, w.m, w.d]);
+    const hit = !q || [d.name, d.tag, d.desc, d.quote || '', ...works].some((s) => s.includes(q));
+    listEl.children[i].hidden = !(inTab && hit);
+    if (inTab && hit) shown++;
+  });
+  document.getElementById('empty').hidden = shown > 0;
+}
+document.getElementById('search').addEventListener('input', applyFilter);
+document.getElementById('search').addEventListener('keydown', (e) => {   // 按 Enter 直接飛到第一筆
+  if (e.key !== 'Enter') return;
+  const first = [...listEl.children].find((li) => !li.hidden);
+  if (first) focusIsland(+first.dataset.i);
+});
+document.querySelectorAll('#tabs button').forEach((b) => (b.onclick = () => {
+  filter = b.dataset.f;
+  document.querySelectorAll('#tabs button').forEach((x) => x.classList.toggle('on', x === b));
+  applyFilter();
+}));
+
+function focusIsland(i) {
+  const d = ISLANDS[i];
+  selected = i;
+  updateOutlines();
+  document.getElementById('cNum').textContent = `ISLAND ${num(i)} · ${d.tag}`;
+  const tile = document.getElementById('cTile');
+  tile.textContent = num(i);
+  tile.style.background = new THREE.Color(GROUND[d.type].base).lerp(new THREE.Color('#5B5048'), 0.3).getStyle();
+  document.getElementById('cName').textContent = d.name;
+  document.getElementById('cDesc').textContent = d.desc;
+  const quote = document.getElementById('cQuote');
+  quote.hidden = !d.quote;
+  quote.textContent = d.quote ? `「${d.quote}」` : '';
+  const nb = NEIGHBORS.filter(([dq, dr]) => byAxial.has([d.ax[0] + dq, d.ax[1] + dr].join(','))).length;
+  const people = walkers.filter((w) => pathNodes[w.from].island === i).length;
+  const works = WORKS[d.type];
+  document.getElementById('cChips').innerHTML =
+    `<span>${d.tag}</span><span>${works.items.length} 項行動</span><span>連著 ${nb} 座島</span><span>島上 ${people} 位志工</span>`;
+  document.getElementById('cWorks').innerHTML = works.items.map((w) =>
+    `<li><details><summary><i></i><b>${w.t}</b><em>${w.m}</em></summary><p>${w.d}</p></details></li>`).join('');
+  document.getElementById('cSrc').innerHTML = works.src.map(([n, u]) =>
+    `<li><a href="${encodeURI(u)}" target="_blank" rel="noopener">${n}</a></li>`).join('');
+  card.scrollTop = 0;
+  card.classList.add('open');
+  document.body.classList.add('card-open');
+  [...listEl.children].forEach((li) => li.classList.toggle('on', +li.dataset.i === i));
+  listEl.children[i].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  const p = islandGroups[i].position;
+  camGoal.target = p.clone();
+  camGoal.pos = p.clone().add(new THREE.Vector3(5, 6, 7.5));
+}
+
+// 從清單點某一項行動：打開說明卡上的那一項，並捲到看得到的地方
+function openWork(k) {
+  const d = card.querySelectorAll('#cWorks details')[k];
+  if (!d) return;
+  card.querySelectorAll('#cWorks details').forEach((x) => (x.open = x === d));
+  d.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+
+function closeCard() {
+  selected = -1;
+  updateOutlines();
+  card.classList.remove('open');
+  document.body.classList.remove('card-open');
+  [...listEl.children].forEach((li) => li.classList.remove('on'));
+}
+
+document.getElementById('cClose').onclick = closeCard;
+document.getElementById('cHome').onclick = () => {
+  closeCard();
+  camGoal.target = new THREE.Vector3(0, 0, 0);
+  camGoal.pos = HOME.clone();
+};
+addEventListener('keydown', (e) => { if (e.key === 'Escape') closeCard(); });
+
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+let downAt = 0;
+renderer.domElement.addEventListener('pointerdown', () => (downAt = performance.now()));
+renderer.domElement.addEventListener('pointerup', (e) => {
+  if (performance.now() - downAt > 250) return;         // 拖曳鏡頭不算點擊
+  const rect = renderer.domElement.getBoundingClientRect();
+  pointer.set(((e.clientX - rect.left) / rect.width) * 2 - 1, -((e.clientY - rect.top) / rect.height) * 2 + 1);
+  raycaster.setFromCamera(pointer, camera);
+  const hit = raycaster.intersectObjects(islandMeshes)[0];
+  if (hit) focusIsland(hit.object.userData.index);
+});
+controls.addEventListener('start', () => (camGoal.pos = camGoal.target = null));  // 使用者自己拖就停止自動飛
+
+/* ────────────────────────────────────────────
+   步驟 ⑨ 動畫迴圈：每秒約 60 次重畫
+   ──────────────────────────────────────────── */
+const clock = new THREE.Clock();
+let lastT = 0;
+function loop() {
+  const t = clock.getElapsedTime();
+
+  clouds.forEach((c) => { c.position.x += 0.01; if (c.position.x > 50) c.position.x = -50; });
+  windmills.forEach((h) => (h.rotation.z -= 0.02));
+  boats.forEach((b) => {                                // 帆船繞著湖慢慢航行
+    const u = b.userData;
+    u.a += u.v * 0.016;
+    b.position.set(Math.cos(u.a) * u.r, WATER_Y + 0.05, Math.sin(u.a) * u.r);
+    b.rotation.y = -u.a + (u.v > 0 ? Math.PI : 0);
+  });
+  stepTime();
+  stepPeople(Math.min(t - lastT, 0.1));                 // 分頁切走再回來時不要瞬移
+  lastT = t;
+
+  if (camGoal.pos) {                                     // 鏡頭平滑飛行
+    camera.position.lerp(camGoal.pos, 0.05);
+    controls.target.lerp(camGoal.target, 0.05);
+    if (camera.position.distanceTo(camGoal.pos) < 0.05) camGoal.pos = camGoal.target = null;
+  }
+
+  controls.update();
+  renderer.render(scene, camera);
+  labelRenderer.render(scene, camera);
+  requestAnimationFrame(loop);
+}
+loop();
+
+addEventListener('resize', () => {
+  camera.aspect = app.clientWidth / app.clientHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(app.clientWidth, app.clientHeight);
+  labelRenderer.setSize(app.clientWidth, app.clientHeight);
+});
+</script>
+</body>
+</html>
